@@ -1,0 +1,26 @@
+# Node
+node_modules
+npm-debug.log
+package-lock.json
+
+# Next build outputs & editors
+.next
+out
+.vscode
+.DS_Store
+
+# Environment / local config
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# Misc
+coverage
+dist
+*.tgz
