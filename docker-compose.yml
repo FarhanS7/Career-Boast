@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: ./server
+    container_name: server
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./server/.env
+    depends_on:
+      - db
+
+  client:
+    build:
+      context: ./client
+    container_name: client
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./client/.env.local
+    depends_on:
+      - server
+
+volumes:
+  db-data:

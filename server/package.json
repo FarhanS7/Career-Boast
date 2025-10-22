@@ -10,12 +10,17 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@google/generative-ai": "^0.24.1",
+    "@prisma/client": "^6.18.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "inngest": "^3.44.3",
     "mongoose": "^8.19.1",
-    "prisma": "^6.17.1",
     "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "prisma": "^6.18.0"
   }
 }
