@@ -1,5 +1,5 @@
 import express from "express";
-import { getIndustryInsights } from "../controllers/dashboard.controller.js";
+import { getIndustryInsights } from "../controllers/dashboardController.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();

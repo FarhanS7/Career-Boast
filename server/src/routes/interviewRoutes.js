@@ -1,10 +1,12 @@
 import express from "express";
 import {
-  generateQuiz,
-  listAssessments,
-  saveQuizResult,
-} from "../controllers/interview.controller.js";
+    generateQuiz,
+    listAssessments,
+    saveQuizResult,
+} from "../controllers/interviewController.js";
+import { quizResultSchema } from "../lib/schema.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
+import { validateSchema } from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ const router = express.Router();
 router.get("/quiz", requireAuth, generateQuiz);
 
 // Save quiz result
-router.post("/quiz", requireAuth, saveQuizResult);
+router.post("/quiz", requireAuth, validateSchema(quizResultSchema), saveQuizResult);
 
 // Get all assessments (quiz history)
 router.get("/assessments", requireAuth, listAssessments);

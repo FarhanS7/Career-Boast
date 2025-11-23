@@ -1,9 +1,9 @@
 import express from "express";
-import coverLetterRoutes from "./coverLetter.routes.js";
-import dashboardRoutes from "./dashboard.routes.js";
-import interviewRoutes from "./interview.routes.js";
-import resumeRoutes from "./resume.routes.js";
-import userRoutes from "./user.routes.js";
+import coverLetterRoutes from "./coverLetterRoutes.js";
+import dashboardRoutes from "./dashboardRoutes.js";
+import interviewRoutes from "./interviewRoutes.js";
+import resumeRoutes from "./resumeRoutes.js";
+import userRoutes from "./userRoutes.js";
 
 const router = express.Router();
 

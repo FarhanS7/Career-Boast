@@ -1,6 +1,30 @@
 // server/src/controllers/UserController.js
+import { checkUser } from "../lib/checkUser.js";
 import db from "../lib/prisma.js";
 import { generateIndustryInsightsAI } from "../services/ai.service.js";
+export const getMe = async (req, res) => {
+  try {
+    const user = req.user;
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get user info" });
+  }
+};
+export async function checkOrCreateUser(req, res, next) {
+  try {
+    const { clerkUserId, clerkData } = req.body;
+    if (!clerkUserId)
+      return res.status(400).json({ error: "clerkUserId is required" });
+
+    const user = await checkUser(clerkUserId, clerkData);
+    if (!user)
+      return res.status(404).json({ error: "User not found or invalid data" });
+
+    res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+}
 
 export async function updateUser(req, res, next) {
   try {

@@ -8,13 +8,16 @@
     "start": "node src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@clerk/express": "^1.7.42",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.18.0",
     "cors": "^2.8.5",
@@ -25,7 +28,10 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.10",
-    "prisma": "^6.18.0"
+    "prisma": "^6.18.0",
+    "supertest": "^7.1.4"
   }
 }

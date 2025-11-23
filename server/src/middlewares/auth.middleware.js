@@ -1,4 +1,3 @@
-// server/src/middlewares/auth.middleware.js
 import { clerkMiddleware, getAuth } from "@clerk/express";
 
 /**
@@ -14,8 +13,8 @@ export function attachClerkMiddleware(app) {
 // Use in controllers / routes to assert and set req.userId
 export function requireAuth(req, res, next) {
   try {
-    const { isAuthenticated, userId } = getAuth(req);
-    if (!isAuthenticated || !userId) {
+    const { userId } = getAuth(req);
+    if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
     req.userId = userId;

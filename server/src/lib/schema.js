@@ -59,3 +59,21 @@ export const coverLetterSchema = z.object({
   jobTitle: z.string().min(1, "Job title is required"),
   jobDescription: z.string().min(1, "Job description is required"),
 });
+
+export const improveResumeSchema = z.object({
+  current: z.string().min(1, "Current content is required"),
+  type: z.enum(["experience", "education", "projects", "summary"]),
+});
+
+export const quizResultSchema = z.object({
+  questions: z.array(
+    z.object({
+      question: z.string(),
+      correctAnswer: z.string(),
+      userAnswer: z.string().optional(),
+      explanation: z.string().optional(),
+    })
+  ),
+  answers: z.array(z.string()),
+  score: z.number().min(0).max(100),
+});

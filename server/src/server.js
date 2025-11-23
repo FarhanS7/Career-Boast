@@ -1,7 +1,7 @@
 // server/src/server.js
 import dotenv from "dotenv";
 import app from "./app.js";
-import prisma from "./utils/prisma.js";
+import prisma from "./lib/prisma.js";
 
 dotenv.config();
 
