@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { UserProvider } from "@/lib/hooks/use-user";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
@@ -23,9 +24,11 @@ export default function RootLayout({ children }) {
             enableSystem
             disableTransitionOnChange
           >
-            <Header />
-            {children}
-            <Toaster position="bottom-right" />
+            <UserProvider>
+              <Header />
+              {children}
+              <Toaster position="bottom-right" />
+            </UserProvider>
           </ThemeProvider>
         </body>
       </html>
