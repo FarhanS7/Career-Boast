@@ -16,23 +16,25 @@ export function Header() {
           CareerCoach
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
-          {[
-            { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-            { name: "Resume", href: "/resume", icon: FileText },
-            { name: "Cover Letter", href: "/cover-letter", icon: PenTool },
-            { name: "Interview", href: "/interview", icon: GraduationCap },
-          ].map((item) => (
-            <Link 
-              key={item.name} 
-              href={item.href}
-              className="text-sm font-medium text-zinc-400 hover:text-white transition-colors flex items-center gap-2"
-            >
-              <item.icon className="w-4 h-4" />
-              {item.name}
-            </Link>
-          ))}
-        </nav>
+        {isSignedIn && (
+          <nav className="hidden md:flex items-center gap-8">
+            {[
+              { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+              { name: "Resume", href: "/dashboard/resume", icon: FileText },
+              { name: "Cover Letter", href: "/dashboard/cover-letter", icon: PenTool },
+              { name: "Interview", href: "/dashboard/interview", icon: GraduationCap },
+            ].map((item) => (
+              <Link 
+                key={item.name} 
+                href={item.href}
+                className="text-sm font-medium text-zinc-400 hover:text-white transition-colors flex items-center gap-2"
+              >
+                <item.icon className="w-4 h-4" />
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <div className="flex items-center gap-4">
           {isSignedIn ? (
