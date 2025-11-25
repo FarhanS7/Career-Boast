@@ -1,26 +1,10 @@
-# Node
 node_modules
 npm-debug.log
-package-lock.json
-
-# Next build outputs & editors
 .next
-out
-.vscode
-.DS_Store
 
-# Environment / local config
+# Ignore only server-side envs
 .env
-.env.local
-.env.development
-.env.production
-.env.*.local
+*.env
 
-# Git
-.git
-.gitignore
-
-# Misc
-coverage
-dist
-*.tgz
+# ALLOW .env.local for Next.js
+!.env.local

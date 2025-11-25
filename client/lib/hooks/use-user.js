@@ -1,7 +1,7 @@
 "use client";
 
-import { api } from "@/lib/api-client";
-import { useUser as useClerkUser } from "@clerk/nextjs";
+import { api, setAuthToken } from "@/lib/api-client";
+import { useAuth, useUser as useClerkUser } from "@clerk/nextjs";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
   const { user: clerkUser, isLoaded: clerkLoaded } = useClerkUser();
+  const { getToken } = useAuth();
   const [dbUser, setDbUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
@@ -34,6 +35,12 @@ export function UserProvider({ children }) {
 
     try {
       setLoading(true);
+
+      // Get auth token and set it for API calls
+      const token = await getToken();
+      if (token) {
+        setAuthToken(token);
+      }
 
       // Check or create user in our DB
       const userData = await api.user.checkOrCreate(clerkUser.id, {
@@ -62,7 +69,7 @@ export function UserProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [clerkUser]);
+  }, [clerkUser, getToken]);
 
   // Initialize user when Clerk user is loaded
   useEffect(() => {
@@ -74,6 +81,12 @@ export function UserProvider({ children }) {
   // Update user data
   const updateUser = useCallback(async (data) => {
     try {
+      // Ensure we have a fresh token
+      const token = await getToken();
+      if (token) {
+        setAuthToken(token);
+      }
+
       const updated = await api.user.update(data);
       setDbUser(updated.user);
       
@@ -88,11 +101,17 @@ export function UserProvider({ children }) {
       toast.error(error.message || "Failed to update profile");
       throw error;
     }
-  }, []);
+  }, [getToken]);
 
   // Refresh user data
   const refetchUser = useCallback(async () => {
     try {
+      // Ensure we have a fresh token
+      const token = await getToken();
+      if (token) {
+        setAuthToken(token);
+      }
+
       const userData = await api.user.getMe();
       setDbUser(userData.user);
       return userData.user;
@@ -100,7 +119,7 @@ export function UserProvider({ children }) {
       console.error("Failed to refetch user:", error);
       throw error;
     }
-  }, []);
+  }, [getToken]);
 
   const value = {
     // User data

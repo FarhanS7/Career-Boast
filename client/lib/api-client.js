@@ -11,22 +11,17 @@ const apiClient = axios.create({
 });
 
 // Request interceptor - Add auth token
+// Note: Auth token should be passed via setAuthToken() before making authenticated requests
+let authToken = null;
+
+export const setAuthToken = (token) => {
+  authToken = token;
+};
+
 apiClient.interceptors.request.use(
   async (config) => {
-    // Get Clerk session token if available
-    if (typeof window !== "undefined") {
-      try {
-        // Dynamically import Clerk to avoid SSR issues
-        const { useAuth } = await import("@clerk/nextjs");
-        const { getToken } = useAuth();
-        const token = await getToken();
-        
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      } catch (error) {
-        console.warn("Failed to get auth token:", error);
-      }
+    if (authToken) {
+      config.headers.Authorization = `Bearer ${authToken}`;
     }
     return config;
   },
