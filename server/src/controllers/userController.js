@@ -2,6 +2,7 @@
 import { checkUser } from "../lib/checkUser.js";
 import db from "../lib/prisma.js";
 import { generateIndustryInsightsAI } from "../services/ai.service.js";
+
 export const getMe = async (req, res) => {
   try {
     const user = req.user;
@@ -10,6 +11,7 @@ export const getMe = async (req, res) => {
     res.status(500).json({ error: "Failed to get user info" });
   }
 };
+
 export async function checkOrCreateUser(req, res, next) {
   try {
     const { clerkUserId, clerkData } = req.body;
@@ -31,20 +33,28 @@ export async function updateUser(req, res, next) {
     const user = await db.user.findUnique({
       where: { clerkUserId: req.userId },
     });
+
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const data = req.body;
 
     const result = await db.$transaction(async (tx) => {
       let industryInsight = await tx.industryInsight.findUnique({
-        where: { industry: data.industry },
+        where: {
+          industry_subIndustry: {
+            industry: data.industry,
+            subIndustry: data.subIndustry
+          }
+        }
       });
 
       if (!industryInsight) {
         const insights = await generateIndustryInsightsAI(data.industry);
+
         industryInsight = await tx.industryInsight.create({
           data: {
             industry: data.industry,
+            subIndustry: data.subIndustry,
             ...insights,
             nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           },
@@ -55,6 +65,7 @@ export async function updateUser(req, res, next) {
         where: { id: user.id },
         data: {
           industry: data.industry,
+          subIndustry: data.subIndustry,
           experience: data.experience,
           bio: data.bio,
           skills: data.skills,
@@ -74,11 +85,12 @@ export async function getOnboardingStatus(req, res, next) {
   try {
     const user = await db.user.findUnique({
       where: { clerkUserId: req.userId },
-      select: { industry: true },
+      select: { industry: true, subIndustry: true },
     });
+
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res.json({ completed: !!user.industry });
+    res.json({ completed: !!user.industry && !!user.subIndustry });
   } catch (err) {
     next(err);
   }
