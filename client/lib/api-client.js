@@ -46,12 +46,8 @@ apiClient.interceptors.response.use(
       // Server responded with error status
       const { status, data } = error.response;
       
-      if (status === 401) {
-        // Unauthorized - redirect to sign in
-        if (typeof window !== "undefined") {
-          window.location.href = "/sign-in";
-        }
-      }
+      // Don't automatically redirect on 401 - let components handle it
+      // This prevents infinite redirect loops
       
       // Return formatted error
       return Promise.reject({

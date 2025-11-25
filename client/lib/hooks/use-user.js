@@ -44,12 +44,21 @@ export function UserProvider({ children }) {
 
       setDbUser(userData.user);
 
-      // Check onboarding status
-      const onboardingStatus = await api.user.checkOnboarding();
-      setOnboardingComplete(onboardingStatus.completed);
+      // Check onboarding status based on user data
+      // User is onboarded if they have an industry set
+      setOnboardingComplete(!!userData.user?.industry);
     } catch (error) {
       console.error("Failed to initialize user:", error);
-      toast.error("Failed to load user data");
+      
+      // Don't show error toast on every reload - just log it
+      // Only show if it's not a network/auth error
+      if (error.status !== 0 && error.status !== 401) {
+        toast.error("Failed to load user data");
+      }
+      
+      // Set loading to false even on error to prevent infinite loading
+      setDbUser(null);
+      setOnboardingComplete(false);
     } finally {
       setLoading(false);
     }
