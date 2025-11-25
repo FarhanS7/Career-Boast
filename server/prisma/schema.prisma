@@ -8,21 +8,28 @@ datasource db {
 }
 
 model User {
-  id              String           @id @default(uuid())
-  clerkUserId     String           @unique
-  email           String           @unique
+  id              String   @id @default(uuid())
+  clerkUserId     String   @unique
+  email           String   @unique
   name            String?
   imageUrl        String?
+
   industry        String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  subIndustry     String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   bio             String?
   experience      Int?
   skills          String[]
+
+industryInsight IndustryInsight? @relation(fields: [industry, subIndustry], references: [industry, subIndustry])
+
+
   assessments     Assessment[]
   coverLetter     CoverLetter[]
   resume          Resume?
-  industryInsight IndustryInsight? @relation(fields: [industry], references: [industry])
 }
 
 model Assessment {
@@ -34,9 +41,8 @@ model Assessment {
   improvementTip String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id])
 
-  @@index([userId])
+  user           User     @relation(fields: [userId], references: [id])
 }
 
 model Resume {
@@ -47,6 +53,7 @@ model Resume {
   feedback  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   user      User     @relation(fields: [userId], references: [id])
 }
 
@@ -60,14 +67,16 @@ model CoverLetter {
   status         String   @default("draft")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id])
 
-  @@index([userId])
+  user           User     @relation(fields: [userId], references: [id])
 }
 
 model IndustryInsight {
   id                String   @id @default(cuid())
-  industry          String   @unique
+
+  industry          String
+  subIndustry       String
+
   salaryRanges      Json[]
   growthRate        Float
   demandLevel       String
@@ -75,9 +84,12 @@ model IndustryInsight {
   marketOutlook     String
   keyTrends         String[]
   recommendedSkills String[]
+
   lastUpdated       DateTime @default(now())
   nextUpdate        DateTime
+
   users             User[]
 
+  @@unique([industry, subIndustry])
   @@index([industry])
 }
