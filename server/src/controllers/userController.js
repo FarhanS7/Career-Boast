@@ -78,7 +78,7 @@ export async function getOnboardingStatus(req, res, next) {
     });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res.json({ isOnboarded: !!user.industry });
+    res.json({ completed: !!user.industry });
   } catch (err) {
     next(err);
   }
