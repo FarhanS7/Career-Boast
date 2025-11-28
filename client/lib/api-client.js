@@ -104,5 +104,6 @@ export const api = {
   // Dashboard endpoints
   dashboard: {
     getStats: () => apiClient.get("/dashboard/stats"),
+    getIndustryInsights: () => apiClient.get("/dashboard/industry-insights"),
   },
 };

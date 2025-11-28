@@ -149,8 +149,12 @@ import debugFactory from "debug";
 import fetch from "node-fetch"; // ensure node-fetch is installed (npm i node-fetch@2) or use global fetch in Node 18+
 const debug = debugFactory("handy:ai");
 
+// Force debug output to console for now
+debug.log = console.log.bind(console);
+debug.enabled = true;
+
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || "text-bison-001"; // safer default
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash"; // Updated to modern model
 
 // Helper: attempt multiple client styles; never throw to caller, return string
 async function generateContent(prompt) {
@@ -169,26 +173,11 @@ async function generateContent(prompt) {
       );
       try {
         const client = new ga.GoogleGenerativeAI(API_KEY);
-        // some versions expose client.models.generateContent or client.models.generateText
-        if (client.models?.generateContent) {
-          const resp = await client.models.generateContent({
-            model: DEFAULT_MODEL,
-            contents: [{ text: prompt }],
-          });
-          // many libs return .text or .response.text()
-          if (resp?.text) return String(resp.text).trim();
-          if (resp?.response?.text) return String(resp.response.text).trim();
-          if (typeof resp === "string") return resp.trim();
-          if (resp?.candidates?.[0]?.content) return resp.candidates[0].content;
-        }
-        if (client.models?.generateText) {
-          const resp = await client.models.generateText({
-            model: DEFAULT_MODEL,
-            prompt,
-          });
-          if (resp?.candidates?.[0]?.content) return resp.candidates[0].content;
-          if (resp?.text) return resp.text;
-        }
+        const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+        return text;
       } catch (err) {
         debug(
           "Error using @google/generative-ai client methods:",
@@ -204,65 +193,14 @@ async function generateContent(prompt) {
     );
   }
 
-  // 2) Try other exported shapes (older or newer variants)
-  try {
-    const genai = await import("@google/generative-ai").catch(() => null);
-    if (genai) {
-      // some versions provided GoogleGenerativeAI as default or named differently
-      const candidateClient = genai.GoogleGenerativeAI || genai.default || null;
-      if (candidateClient) {
-        debug("Using alternate @google/generative-ai client flow.");
-        try {
-          const client = new candidateClient(API_KEY);
-          // try chat / completions forms if present
-          if (client.chat?.completions?.create) {
-            const r = await client.chat.completions.create({
-              model: DEFAULT_MODEL,
-              messages: [{ role: "user", content: prompt }],
-              temperature: 0.7,
-              max_output_tokens: 500,
-            });
-            const content = r?.choices?.[0]?.message?.content;
-            if (content) return content;
-          }
-          if (client.generateText) {
-            const r = await client.generateText({
-              model: DEFAULT_MODEL,
-              prompt,
-            });
-            if (r?.candidates?.[0]?.content) return r.candidates[0].content;
-            if (r?.text) return r.text;
-          }
-        } catch (err) {
-          debug("Alternate client flow failed:", err?.message || err);
-        }
-      }
-    }
-  } catch (err) {
-    debug("Alternate import error:", err?.message || err);
-  }
-
-  // 3) Fallback: call the Generative Language REST endpoint directly
-  // NOTE: REST path varies by API version; many setups accept v1beta2 or v1
-  // We'll try v1 endpoint with generateText body format, then v1beta2
+  // 2) Fallback: call the Generative Language REST endpoint directly
+  // Using v1beta endpoint which supports gemini-1.5-flash
   const triedEndpoints = [];
 
   const restAttempts = [
     {
-      url: `https://generativelanguage.googleapis.com/v1/models/${DEFAULT_MODEL}:generateText`,
-      body: { prompt: { text: prompt } },
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta2/models/${DEFAULT_MODEL}:generateText`,
-      body: { prompt: { text: prompt } },
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1/models/${DEFAULT_MODEL}:generateMessage`,
-      body: { input: prompt },
-    },
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta2/models/${DEFAULT_MODEL}:generateContent`,
-      body: { contents: [{ text: prompt }] },
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`,
+      body: { contents: [{ parts: [{ text: prompt }] }] },
     },
   ];
 
@@ -360,6 +298,8 @@ Include at least 5 common roles, skills, and trends.
       .trim();
     return JSON.parse(cleaned);
   } catch (err) {
+    console.error("❌ [AI Service] Failed to parse industry insights JSON:", err);
+    console.error("❌ [AI Service] Raw text received:", text);
     debug(
       "Failed to parse industry insights JSON:",
       err?.message || err,

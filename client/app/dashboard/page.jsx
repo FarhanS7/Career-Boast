@@ -1,9 +1,11 @@
 "use client";
 
+import DashboardView from "@/components/dashboard-view";
 import { LoadingPage } from "@/components/ui/loading-spinner";
+import { api } from "@/lib/api-client";
 import { useUser } from "@/lib/hooks/use-user";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function DashboardHome() {
   const router = useRouter();
@@ -14,6 +16,14 @@ export default function DashboardHome() {
       router.push("/onboarding");
     }
   }, [loading, needsOnboarding, router]);
+
+  const [insights, setInsights] = useState(null);
+
+  useEffect(() => {
+    if (user?.industry && user?.subIndustry) {
+      api.dashboard.getIndustryInsights().then(setInsights).catch(console.error);
+    }
+  }, [user]);
 
   if (loading) {
     return <LoadingPage message="Loading your dashboard..." />;
@@ -53,7 +63,7 @@ export default function DashboardHome() {
       </div>
 
       {/* Quick Actions */}
-      <div className="mb-8">
+      {/* <div className="mb-8">
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
@@ -89,17 +99,21 @@ export default function DashboardHome() {
             </a>
           ))}
         </div>
-      </div>
+      </div> */}
 
-      {/* Industry Insights Placeholder */}
-      <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10">
-        <h2 className="text-xl font-semibold text-white mb-2">
-          Industry Insights
-        </h2>
-        <p className="text-zinc-400 mb-4">
-          Complete your onboarding to get personalized insights for your industry.
-        </p>
-      </div>
+      {/* Industry Insights */}
+      {insights ? (
+        <DashboardView insights={insights} />
+      ) : (
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10">
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Industry Insights
+          </h2>
+          <p className="text-zinc-400 mb-4">
+            Loading industry insights...
+          </p>
+        </div>
+      )}
     </div>
   );
 }
