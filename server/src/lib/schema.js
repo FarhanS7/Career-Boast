@@ -31,12 +31,34 @@ export const entrySchema = z
   });
 
 export const resumeSchema = z.object({
-  contactInfo: contactSchema,
-  summary: z.string().min(1, "Professional summary is required"),
-  skills: z.string().min(1, "Skills are required"),
-  experience: z.array(entrySchema),
-  education: z.array(entrySchema),
-  projects: z.array(entrySchema),
+  personalInfo: z.object({
+    name: z.string().optional(),
+    email: z.string().email().optional(),
+    phone: z.string().optional(),
+    location: z.string().optional(),
+    website: z.string().optional(),
+  }).optional(),
+  summary: z.string().optional(),
+  experience: z.array(z.object({
+    company: z.string().optional(),
+    position: z.string().optional(),
+    location: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    current: z.boolean().optional(),
+    description: z.string().optional(),
+  })).optional(),
+  education: z.array(z.object({
+    institution: z.string().optional(),
+    degree: z.string().optional(),
+    field: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    gpa: z.string().optional(),
+  })).optional(),
+  skills: z.array(z.string()).optional(),
+  certifications: z.array(z.string()).optional(),
+  languages: z.array(z.string()).optional(),
 });
 
 export const coverLetterSchema = z.object({

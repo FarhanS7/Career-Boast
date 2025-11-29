@@ -46,15 +46,29 @@ model Assessment {
 }
 
 model Resume {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  content   String
-  atsScore  Float?
-  feedback  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  
+  // Structured resume data
+  personalInfo    Json?
+  summary         String?
+  experience      Json[]
+  education       Json[]
+  skills          String[]
+  certifications  String[]
+  languages       String[]
+  
+  // Legacy field for backward compatibility
+  content         String?
+  
+  atsScore        Float?
+  feedback        String?
+  shareToken      String?  @unique
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
 }
 
 model CoverLetter {

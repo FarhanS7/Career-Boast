@@ -1,8 +1,12 @@
 import express from "express";
 import {
+    deleteResume,
     getResume,
+    getResumeById,
     improveResume,
     saveResume,
+    shareResume,
+    updateResume,
 } from "../controllers/resumeController.js";
 import { improveResumeSchema, resumeSchema } from "../lib/schema.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
@@ -10,13 +14,25 @@ import { validateSchema } from "../middlewares/validate.middleware.js";
 
 const router = express.Router();
 
-// Save or update user resume
-router.post("/", requireAuth, validateSchema(resumeSchema), saveResume);
-
-// Fetch user resume
+// Get all resumes for user
 router.get("/", requireAuth, getResume);
 
+// Create new resume
+router.post("/", requireAuth, validateSchema(resumeSchema), saveResume);
+
+// Get resume by ID
+router.get("/:id", requireAuth, getResumeById);
+
+// Update resume by ID
+router.put("/:id", requireAuth, validateSchema(resumeSchema), updateResume);
+
+// Delete resume by ID
+router.delete("/:id", requireAuth, deleteResume);
+
+// Generate share link
+router.post("/:id/share", requireAuth, shareResume);
+
 // AI improvement for resume
-router.post("/improve", requireAuth, validateSchema(improveResumeSchema), improveResume);
+router.post("/:id/improve", requireAuth, validateSchema(improveResumeSchema), improveResume);
 
 export default router;

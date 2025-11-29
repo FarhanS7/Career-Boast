@@ -81,3 +81,35 @@ export async function deleteCoverLetter(req, res, next) {
     next(err);
   }
 }
+
+export async function updateCoverLetter(req, res, next) {
+  try {
+    const user = await db.user.findUnique({
+      where: { clerkUserId: req.userId },
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const letter = await db.coverLetter.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!letter) return res.status(404).json({ error: "Not found" });
+    if (letter.userId !== user.id) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const updated = await db.coverLetter.update({
+      where: { id: req.params.id },
+      data: {
+        content: req.body.content,
+        jobDescription: req.body.jobDescription,
+        companyName: req.body.companyName,
+        jobTitle: req.body.jobTitle,
+      },
+    });
+
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+}
