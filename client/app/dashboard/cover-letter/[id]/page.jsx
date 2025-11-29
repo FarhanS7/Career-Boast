@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import apiClient, { setAuthToken } from "@/lib/api-client";
 import { useAuth } from "@clerk/nextjs";
-import { ArrowLeft, Copy, Download, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, Download, Edit2, Loader2, Save, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -16,6 +16,8 @@ export default function CoverLetterDetailPage({ params }) {
   const [letter, setLetter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedContent, setEditedContent] = useState("");
 
   useEffect(() => {
     const loadLetter = async () => {
@@ -24,6 +26,7 @@ export default function CoverLetterDetailPage({ params }) {
         if (token) setAuthToken(token);
         const data = await apiClient.get(`/cover-letter/${id}`);
         setLetter(data);
+        setEditedContent(data.content);
       } catch (error) {
         toast.error("Failed to load cover letter");
         console.error(error);
@@ -50,6 +53,25 @@ export default function CoverLetterDetailPage({ params }) {
       toast.error("Failed to delete cover letter");
       console.error(error);
       setDeleting(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const token = await getToken();
+      if (token) setAuthToken(token);
+      
+      const updated = await apiClient.put(`/cover-letter/${id}`, {
+        ...letter,
+        content: editedContent,
+      });
+      
+      setLetter(updated);
+      setIsEditing(false);
+      toast.success("Cover letter saved successfully");
+    } catch (error) {
+      toast.error("Failed to save cover letter");
+      console.error(error);
     }
   };
 
@@ -107,36 +129,77 @@ export default function CoverLetterDetailPage({ params }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
-            <Copy className="w-4 h-4" />
-            Copy
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
-            <Download className="w-4 h-4" />
-            Download
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="gap-2"
-          >
-            {deleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4" />
-            )}
-            Delete
-          </Button>
+          {!isEditing ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="gap-2"
+              >
+                <Edit2 className="w-4 h-4" />
+                Edit
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopy} className="gap-2">
+                <Copy className="w-4 h-4" />
+                Copy
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownload} className="gap-2">
+                <Download className="w-4 h-4" />
+                Download
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="gap-2"
+              >
+                {deleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Delete
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditedContent(letter.content);
+                }}
+                className="gap-2"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </Button>
+              <Button onClick={handleSave} size="sm" className="gap-2">
+                <Save className="w-4 h-4" />
+                Save Changes
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Content */}
       <div className="bg-zinc-900/50 border border-white/10 rounded-2xl p-8">
-        <article className="prose prose-invert max-w-none">
-          <ReactMarkdown>{letter.content}</ReactMarkdown>
-        </article>
+        {isEditing ? (
+          <textarea
+            value={editedContent}
+            onChange={(e) => setEditedContent(e.target.value)}
+            className="w-full h-[600px] bg-transparent border-none focus:ring-0 text-zinc-300 font-mono resize-none p-0 leading-relaxed"
+            placeholder="Start typing..."
+          />
+        ) : (
+          <article className="prose prose-invert max-w-none">
+            <ReactMarkdown>{letter.content}</ReactMarkdown>
+          </article>
+        )}
       </div>
     </div>
   );
