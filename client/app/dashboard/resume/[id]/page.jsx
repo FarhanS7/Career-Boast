@@ -3,12 +3,14 @@
 import ResumeForm from "@/components/resume/resume-form";
 import ResumePreview from "@/components/resume/resume-preview";
 import { Button } from "@/components/ui/button";
-import apiClient from "@/lib/api-client";
+import apiClient, { setAuthToken } from "@/lib/api-client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { useUser } from "@/lib/hooks/use-user";
+import { useAuth } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Check, Copy, Loader2, Save, Share2, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -51,7 +53,9 @@ const resumeSchema = z.object({
 
 export default function ResumePage({ params }) {
   const router = useRouter();
-  const resumeId = params?.id;
+  const { id: resumeId } = use(params);
+  const { user, loading: userLoading } = useUser();
+  const { getToken } = useAuth();
   const [selectedTemplate, setSelectedTemplate] = useState("professional");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -105,7 +109,7 @@ export default function ResumePage({ params }) {
 
       try {
         const response = await apiClient.get(`/resume/${resumeId}`);
-        const resume = response.data;
+        const resume = response;
 
         // Convert arrays to comma-separated strings for form
         const formattedData = {
@@ -143,6 +147,9 @@ export default function ResumePage({ params }) {
     try {
       if (!isAutoSave) setSaving(true);
 
+      const token = await getToken();
+      if (token) setAuthToken(token);
+
       // Convert comma-separated strings to arrays
       const formattedData = {
         ...data,
@@ -157,7 +164,7 @@ export default function ResumePage({ params }) {
       } else {
         response = await apiClient.post("/resume", formattedData);
         // Redirect to the new resume ID
-        router.replace(`/dashboard/resume/${response.data._id}`);
+        router.replace(`/dashboard/resume/${response.id}`);
       }
 
       if (!isAutoSave) {
@@ -181,8 +188,10 @@ export default function ResumePage({ params }) {
 
     try {
       setImproving(true);
+      const token = await getToken();
+      if (token) setAuthToken(token);
       const response = await apiClient.post(`/resume/${resumeId}/improve`);
-      const improved = response.data;
+      const improved = response.improved;
 
       // Convert arrays to comma-separated strings for form
       const formattedData = {
@@ -209,8 +218,10 @@ export default function ResumePage({ params }) {
     }
 
     try {
+      const token = await getToken();
+      if (token) setAuthToken(token);
       const response = await apiClient.post(`/resume/${resumeId}/share`);
-      const url = `${window.location.origin}/resume/share/${response.data.shareToken}`;
+      const url = `${window.location.origin}/resume/share/${response.shareToken}`;
       setShareUrl(url);
       toast.success("Share link generated!");
     } catch (error) {

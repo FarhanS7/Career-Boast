@@ -1,29 +1,39 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import apiClient from "@/lib/api-client";
+import apiClient, { setAuthToken } from "@/lib/api-client";
 import { Edit, FileText, Loader2, Plus, Share2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { useUser } from "@/lib/hooks/use-user";
+import { useAuth } from "@clerk/nextjs";
+
 export default function ResumesPage() {
   const router = useRouter();
+  const { user, loading: userLoading } = useUser();
+  const { getToken } = useAuth();
   const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
 
   useEffect(() => {
-    loadResumes();
-  }, []);
+    if (user && !userLoading) {
+      loadResumes();
+    }
+  }, [user, userLoading]);
 
   const loadResumes = async () => {
     try {
-      const response = await apiClient.get("/resume");
-      setResumes(response.data);
+      const token = await getToken();
+      if (token) setAuthToken(token);
+      const data = await apiClient.get("/resume");
+      setResumes(Array.isArray(data) ? data : (data ? [data] : []));
     } catch (error) {
       toast.error("Failed to load resumes");
       console.error(error);
+      setResumes([]);
     } finally {
       setLoading(false);
     }
@@ -34,8 +44,10 @@ export default function ResumesPage() {
 
     try {
       setDeleting(id);
+      const token = await getToken();
+      if (token) setAuthToken(token);
       await apiClient.delete(`/resume/${id}`);
-      setResumes(resumes.filter((r) => r._id !== id));
+      setResumes(resumes.filter((r) => r.id !== id));
       toast.success("Resume deleted successfully");
     } catch (error) {
       toast.error("Failed to delete resume");
@@ -82,7 +94,7 @@ export default function ResumesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {resumes.map((resume) => (
             <div
-              key={resume._id}
+              key={resume.id}
               className="bg-zinc-900/50 border border-white/10 rounded-2xl p-6 hover:border-blue-500/50 transition-colors group"
             >
               <div className="flex items-start justify-between mb-4">
@@ -120,7 +132,7 @@ export default function ResumesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push(`/dashboard/resume/${resume._id}`)}
+                  onClick={() => router.push(`/dashboard/resume/${resume.id}`)}
                   className="flex-1 gap-2"
                 >
                   <Edit className="w-4 h-4" />
@@ -143,11 +155,11 @@ export default function ResumesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDelete(resume._id)}
-                  disabled={deleting === resume._id}
+                  onClick={() => handleDelete(resume.id)}
+                  disabled={deleting === resume.id}
                   className="text-red-400 hover:text-red-300"
                 >
-                  {deleting === resume._id ? (
+                  {deleting === resume.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Trash2 className="w-4 h-4" />

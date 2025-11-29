@@ -2,14 +2,16 @@
 
 import DashboardView from "@/components/dashboard-view";
 import { LoadingPage } from "@/components/ui/loading-spinner";
-import { api } from "@/lib/api-client";
+import { api, setAuthToken } from "@/lib/api-client";
 import { useUser } from "@/lib/hooks/use-user";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function DashboardHome() {
   const router = useRouter();
   const { user, loading, needsOnboarding } = useUser();
+  const { getToken } = useAuth();
 
   useEffect(() => {
     if (!loading && needsOnboarding) {
@@ -20,10 +22,20 @@ export default function DashboardHome() {
   const [insights, setInsights] = useState(null);
 
   useEffect(() => {
-    if (user?.industry && user?.subIndustry) {
-      api.dashboard.getIndustryInsights().then(setInsights).catch(console.error);
-    }
-  }, [user]);
+    const fetchInsights = async () => {
+      if (user?.industry && user?.subIndustry) {
+        try {
+          const token = await getToken();
+          if (token) setAuthToken(token);
+          const data = await api.dashboard.getIndustryInsights();
+          setInsights(data);
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
+    fetchInsights();
+  }, [user, getToken]);
 
   if (loading) {
     return <LoadingPage message="Loading your dashboard..." />;
