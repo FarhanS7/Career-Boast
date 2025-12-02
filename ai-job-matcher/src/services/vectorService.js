@@ -1,0 +1,101 @@
+import getQdrantClient, { COLLECTIONS } from "../lib/qdrant.js";
+
+export const upsertResumeVector = async (resumeId, vector, metadata = {}) => {
+  const client = getQdrantClient();
+  
+  await client.upsert(COLLECTIONS.RESUMES, {
+    wait: true,
+    points: [
+      {
+        id: resumeId,
+        vector,
+        payload: {
+          resumeId,
+          ...metadata,
+        },
+      },
+    ],
+  });
+};
+
+export const upsertJobVector = async (jobId, vector, metadata = {}) => {
+  const client = getQdrantClient();
+  
+  await client.upsert(COLLECTIONS.JOBS, {
+    wait: true,
+    points: [
+      {
+        id: jobId,
+        vector,
+        payload: {
+          jobId,
+          ...metadata,
+        },
+      },
+    ],
+  });
+};
+
+export const searchSimilarJobs = async (resumeVector, topK = 30) => {
+  const client = getQdrantClient();
+  
+  const searchResult = await client.search(COLLECTIONS.JOBS, {
+    vector: resumeVector,
+    limit: topK,
+    with_payload: true,
+  });
+  
+  return searchResult.map((result) => ({
+    jobId: result.id,
+    score: result.score,
+    ...result.payload,
+  }));
+};
+
+export const deleteResumeVector = async (resumeId) => {
+  const client = getQdrantClient();
+  
+  await client.delete(COLLECTIONS.RESUMES, {
+    wait: true,
+    points: [resumeId],
+  });
+};
+
+export const deleteJobVector = async (jobId) => {
+  const client = getQdrantClient();
+  
+  await client.delete(COLLECTIONS.JOBS, {
+    wait: true,
+    points: [jobId],
+  });
+};
+
+export const batchUpsertJobVectors = async (jobs) => {
+  const client = getQdrantClient();
+  
+  const points = jobs.map((job) => ({
+    id: job.id,
+    vector: job.vector,
+    payload: {
+      jobId: job.id,
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      url: job.url,
+    },
+  }));
+  
+  await client.upsert(COLLECTIONS.JOBS, {
+    wait: true,
+    points,
+  });
+};
+
+export default {
+  upsertResumeVector,
+  upsertJobVector,
+  searchSimilarJobs,
+  deleteResumeVector,
+  deleteJobVector,
+  batchUpsertJobVectors,
+};
