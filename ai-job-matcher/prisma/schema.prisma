@@ -1,0 +1,76 @@
+// This is your Prisma schema file for AI Job Matcher Service
+// It extends the main application's database with job matching tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Resume profiles for job matching
+model ResumeProfile {
+  id        String   @id @default(cuid())
+  userId    String?  // Optional: can link to User model from main app
+  title     String   // e.g., "Senior Backend Developer Resume"
+  rawText   String   @db.Text
+  fileName  String?
+  fileSize  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  recommendations JobRecommendation[]
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@map("resume_profiles")
+}
+
+// Job postings fetched from external APIs
+model JobPosting {
+  id          String    @id @default(cuid())
+  externalId  String    // Job ID from the source API
+  source      String    // e.g., "jobicy", "adzuna", "remoteok"
+  title       String
+  company     String
+  location    String?
+  url         String
+  description String    @db.Text
+  salary      String?
+  jobType     String?   // e.g., "full-time", "contract", "remote"
+  tags        String[]  // Skills/technologies
+  postedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  recommendations JobRecommendation[]
+  
+  @@unique([externalId, source])
+  @@index([source])
+  @@index([createdAt])
+  @@index([jobType])
+  @@map("job_postings")
+}
+
+// AI-powered job recommendations with match scores
+model JobRecommendation {
+  id              String   @id @default(cuid())
+  resumeId        String
+  jobId           String
+  matchScore      Float    // 0-100 similarity score
+  mainReason      String   @db.Text  // AI-generated explanation
+  skillsMatched   String[] // Skills from resume found in job
+  skillsMissing   String[] // Skills in job not in resume
+  aiMetadata      Json?    // Store full AI response if needed
+  createdAt       DateTime @default(now())
+  
+  resume ResumeProfile @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job    JobPosting    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  @@unique([resumeId, jobId])
+  @@index([resumeId, createdAt])
+  @@index([matchScore])
+  @@map("job_recommendations")
+}
