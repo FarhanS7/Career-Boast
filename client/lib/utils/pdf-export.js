@@ -1,5 +1,3 @@
-import html2pdf from "html2pdf.js";
-
 /**
  * Export HTML element to PDF
  * @param {HTMLElement} element - The element to export
@@ -8,6 +6,9 @@ import html2pdf from "html2pdf.js";
  * @returns {Promise<void>}
  */
 export async function exportToPDF(element, filename = "resume.pdf", options = {}) {
+  // Dynamic import to avoid SSR issues
+  const html2pdf = (await import("html2pdf.js")).default;
+  
   const defaultOptions = {
     margin: 0,
     filename,
@@ -42,6 +43,9 @@ export async function exportToPDF(element, filename = "resume.pdf", options = {}
  * @returns {Promise<Blob>}
  */
 export async function generatePDFBlob(element, options = {}) {
+  // Dynamic import to avoid SSR issues
+  const html2pdf = (await import("html2pdf.js")).default;
+  
   const defaultOptions = {
     margin: 0,
     image: { type: "jpeg", quality: 0.98 },

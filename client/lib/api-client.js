@@ -91,13 +91,14 @@ export const api = {
     list: () => apiClient.get("/cover-letter"),
     create: (data) => apiClient.post("/cover-letter", data),
     getById: (id) => apiClient.get(`/cover-letter/${id}`),
+    update: (id, data) => apiClient.put(`/cover-letter/${id}`, data),
     delete: (id) => apiClient.delete(`/cover-letter/${id}`),
   },
   
   // Interview endpoints
   interview: {
-    generateQuiz: (data) => apiClient.post("/interview/quiz", data),
-    submitQuiz: (data) => apiClient.post("/interview/quiz/submit", data),
+    generateQuiz: () => apiClient.get("/interview/quiz"),
+    submitQuiz: (data) => apiClient.post("/interview/quiz", data),
     getAssessments: () => apiClient.get("/interview/assessments"),
   },
   
@@ -105,5 +106,51 @@ export const api = {
   dashboard: {
     getStats: () => apiClient.get("/dashboard/stats"),
     getIndustryInsights: () => apiClient.get("/dashboard/industry-insights"),
+  },
+};
+
+// AI Job Matcher API Client (Port 4001)
+const JOB_MATCHER_API_URL = "http://localhost:4001/api";
+
+const jobMatcherClient = axios.create({
+  baseURL: JOB_MATCHER_API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add auth token to job matcher requests too
+jobMatcherClient.interceptors.request.use(
+  async (config) => {
+    if (authToken) {
+      config.headers.Authorization = `Bearer ${authToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+export const jobApi = {
+  // Resume endpoints
+  resumes: {
+    upload: (formData) => jobMatcherClient.post("/resumes/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+    list: () => jobMatcherClient.get("/resumes"),
+    getById: (id) => jobMatcherClient.get(`/resumes/${id}`),
+    delete: (id) => jobMatcherClient.delete(`/resumes/${id}`),
+  },
+
+  // Job endpoints
+  jobs: {
+    list: (params) => jobMatcherClient.get("/jobs", { params }),
+    getById: (id) => jobMatcherClient.get(`/jobs/${id}`),
+    sync: () => jobMatcherClient.get("/jobs/sync"),
+  },
+
+  // Recommendation endpoints
+  recommendations: {
+    generate: (resumeId) => jobMatcherClient.post(`/recommendations/${resumeId}`),
+    get: (resumeId) => jobMatcherClient.get(`/recommendations/${resumeId}`),
   },
 };
