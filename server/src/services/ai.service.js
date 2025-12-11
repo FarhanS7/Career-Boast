@@ -8,90 +8,98 @@ debug.log = console.log.bind(console);
 debug.enabled = true;
 
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"; // Updated to modern model
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest"; // Trying flash-latest alias
 
 // Helper: attempt multiple client styles; never throw to caller, return string
-async function generateContent(prompt) {
+async function generateContent(prompt, retries = 5) {
   if (!API_KEY) {
     debug("No GEMINI_API_KEY set in env.");
     return "[AI unavailable: GEMINI_API_KEY not configured]";
   }
 
-  // 1) Try using @google/generative-ai (if installed and exposes models.generateContent)
-  try {
-    // lazy import so we don't crash if package not present
-    const ga = await import("@google/generative-ai").catch(() => null);
-    if (ga?.GoogleGenerativeAI) {
-      debug(
-        "Using @google/generative-ai package flow (models.generateContent attempt)."
-      );
+  for (let attemptCount = 0; attemptCount <= retries; attemptCount++) {
+    try {
+      // 1) Try using @google/generative-ai (if installed and exposes models.generateContent)
       try {
-        const client = new ga.GoogleGenerativeAI(API_KEY);
-        const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        console.log(`[AI] Gemini API responded successfully`);
-        return text;
+        // lazy import so we don't crash if package not present
+        const ga = await import("@google/generative-ai").catch(() => null);
+        if (ga?.GoogleGenerativeAI) {
+          debug(
+            `Using @google/generative-ai package flow (attempt ${attemptCount + 1}).`
+          );
+          
+          const client = new ga.GoogleGenerativeAI(API_KEY);
+          const model = client.getGenerativeModel({ model: DEFAULT_MODEL });
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          const text = response.text();
+          console.log(`[AI] Gemini API responded successfully`);
+          return text;
+        }
       } catch (err) {
+        if (err.message?.includes("429") || err.status === 429) {
+           throw err; // Throw to outer loop to trigger retry
+        }
         console.error(`[AI] Error: ${err?.message || err}`);
         debug(
           "Error using @google/generative-ai client methods:",
           err?.message || err
         );
-        // fall through to next approach
+        // fall through to REST approach if it's not a rate limit
       }
-    }
-  } catch (err) {
-    debug(
-      "Import attempt for @google/generative-ai failed:",
-      err?.message || err
-    );
-  }
 
-  // 2) Fallback: call the Generative Language REST endpoint directly
-  // Using v1beta endpoint which supports gemini-1.5-flash
-  const triedEndpoints = [];
-
-  const restAttempts = [
-    {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`,
-      body: { contents: [{ parts: [{ text: prompt }] }] },
-    },
-  ];
-
-  for (const attempt of restAttempts) {
-    try {
-      triedEndpoints.push(attempt.url);
-      const res = await fetch(`${attempt.url}?key=${API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // 2) Fallback: call the Generative Language REST endpoint directly
+      const triedEndpoints = [];
+      const restAttempts = [
+        {
+          url: `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_MODEL}:generateContent`,
+          body: { contents: [{ parts: [{ text: prompt }] }] },
         },
-        body: JSON.stringify(attempt.body),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        debug(`REST ${attempt.url} returned ${res.status}`, json);
+      ];
+
+      for (const attempt of restAttempts) {
+        triedEndpoints.push(attempt.url);
+        const res = await fetch(`${attempt.url}?key=${API_KEY}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(attempt.body),
+        });
+        const json = await res.json().catch(() => null);
+        
+        if (res.status === 429) {
+           throw new Error("429 Too Many Requests");
+        }
+
+        if (!res.ok) {
+          debug(`REST ${attempt.url} returned ${res.status}`, json);
+          continue;
+        }
+        // Attempt to parse common response shapes:
+        if (json?.candidates?.[0]?.content) return json.candidates[0].content;
+        if (json?.output?.[0]?.content?.[0]?.text)
+          return json.output[0].content[0].text;
+        if (json?.text) return json.text;
+        if (json?.response?.text) return json.response.text;
+        if (json?.result?.[0]) return String(json.result[0]).trim();
+        // else return entire json as string
+        return JSON.stringify(json);
+      }
+    } catch (err) {
+      if ((err.message?.includes("429") || err.status === 429) && attemptCount < retries) {
+        const delay = Math.pow(2, attemptCount) * 1000 + (Math.random() * 1000);
+        console.log(`[AI] Rate limited. Retrying in ${Math.round(delay)}ms...`);
+        await new Promise(r => setTimeout(r, delay));
         continue;
       }
-      // Attempt to parse common response shapes:
-      if (json?.candidates?.[0]?.content) return json.candidates[0].content;
-      if (json?.output?.[0]?.content?.[0]?.text)
-        return json.output[0].content[0].text;
-      if (json?.text) return json.text;
-      if (json?.response?.text) return json.response.text;
-      if (json?.result?.[0]) return String(json.result[0]).trim();
-      // else return entire json as string
-      return JSON.stringify(json);
-    } catch (err) {
-      debug("REST attempt error for", attempt.url, err?.message || err);
-      // try next
+      // If we've run out of retries or it's not a rate limit error that we caught above
+      if (attemptCount === retries) {
+         debug("All AI attempts failed.", err?.message || err);
+         return "[AI unavailable: failed to call provider or unsupported SDK version]";
+      }
     }
   }
-
-  debug("All AI attempts failed. Tried endpoints:", triedEndpoints);
-  return "[AI unavailable: failed to call provider or unsupported SDK version]";
 }
 
 /* Convenience wrappers used by your controllers below.
@@ -310,6 +318,9 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations outside JSON.
 
 // Helper function to build readable text from structured resume data
 function buildResumeText(resumeData) {
+  if (typeof resumeData === 'string') return resumeData;
+  if (!resumeData) return "";
+
   const parts = [];
   
   // Personal Info

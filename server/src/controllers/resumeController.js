@@ -1,6 +1,6 @@
 // server/src/controllers/ResumeController.js
 import db from "../lib/prisma.js";
-import { improveResumeAI } from "../services/ai.service.js";
+import { calculateATSScoreAI, improveResumeAI } from "../services/ai.service.js";
 
 export async function saveResume(req, res, next) {
   try {
@@ -248,4 +248,53 @@ export async function checkATSScore(req, res, next) {
     next(err);
   }
 }
+
+export async function checkATSScoreFile(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const { jobDescription } = req.body;
+    if (!jobDescription || jobDescription.length < 50) {
+      return res.status(400).json({ 
+        error: "Invalid job description", 
+        message: "Job description must be at least 50 characters" 
+      });
+    }
+
+    let resumeText = "";
+
+    // Parse file based on type
+    if (req.file.mimetype === "application/pdf") {
+      // Use createRequire for reliable CJS import of pdf-parse v1.1.1
+      const { createRequire } = await import("module");
+      const require = createRequire(import.meta.url);
+      const pdfParse = require("pdf-parse");
+      
+      const dataBuffer = req.file.buffer;
+      const pdfData = await pdfParse(dataBuffer);
+      resumeText = pdfData.text;
+    } else if (req.file.mimetype === "text/plain") {
+      resumeText = req.file.buffer.toString("utf-8");
+    } else {
+      return res.status(400).json({ error: "Unsupported file type. Please upload PDF or TXT." });
+    }
+
+    if (!resumeText || resumeText.trim().length < 50) {
+      return res.status(400).json({ error: "Could not extract text from resume or text is too short" });
+    }
+
+    // Get ATS score from AI
+    const atsResult = await calculateATSScoreAI(resumeText, jobDescription);
+
+    res.json({
+      success: true,
+      ...atsResult,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 
