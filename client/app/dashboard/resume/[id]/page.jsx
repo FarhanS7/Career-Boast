@@ -186,25 +186,34 @@ export default function ResumePage({ params }) {
       return;
     }
 
+    const currentSummary = formData.summary;
+    if (!currentSummary || currentSummary.trim().length === 0) {
+      toast.error("Please add a summary to improve");
+      return;
+    }
+
     try {
       setImproving(true);
       const token = await getToken();
       if (token) setAuthToken(token);
-      const response = await apiClient.post(`/resume/${resumeId}/improve`);
-      const improved = response.improved;
+      
+      // Send the current summary text and type for AI improvement
+      const response = await apiClient.post(`/resume/${resumeId}/improve`, {
+        current: currentSummary,
+        type: "summary"
+      });
+      
+      const improvedSummary = response.improved;
 
-      // Convert arrays to comma-separated strings for form
-      const formattedData = {
-        ...improved,
-        skills: improved.skills?.join(", ") || "",
-        certifications: improved.certifications?.join(", ") || "",
-        languages: improved.languages?.join(", ") || "",
-      };
-
-      reset(formattedData);
-      toast.success("Resume improved with AI suggestions!");
+      // Update only the summary field
+      reset({
+        ...formData,
+        summary: improvedSummary,
+      });
+      
+      toast.success("Summary improved with AI suggestions!");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to improve resume");
+      toast.error(error.message || "Failed to improve resume");
       console.error(error);
     } finally {
       setImproving(false);

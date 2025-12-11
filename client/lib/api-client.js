@@ -84,6 +84,7 @@ export const api = {
     get: () => apiClient.get("/resume"),
     save: (data) => apiClient.post("/resume", data),
     improve: (data) => apiClient.post("/resume/improve", data),
+    checkATSScore: (jobDescription) => apiClient.post("/resume/ats-score", { jobDescription }),
   },
   
   // Cover letter endpoints
