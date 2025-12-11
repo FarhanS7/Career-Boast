@@ -84,3 +84,8 @@ export const quizResultSchema = z.object({
   answers: z.array(z.string()),
   score: z.number().min(0).max(100),
 });
+
+export const atsScoreSchema = z.object({
+  jobDescription: z.string().min(50, "Job description must be at least 50 characters"),
+});
+

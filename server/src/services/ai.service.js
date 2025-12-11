@@ -8,7 +8,7 @@ debug.log = console.log.bind(console);
 debug.enabled = true;
 
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash"; // Updated to modern model
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash-exp"; // Updated to modern model
 
 // Helper: attempt multiple client styles; never throw to caller, return string
 async function generateContent(prompt) {
@@ -31,8 +31,10 @@ async function generateContent(prompt) {
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
+        console.log(`[AI] Gemini API responded successfully`);
         return text;
       } catch (err) {
+        console.error(`[AI] Error: ${err?.message || err}`);
         debug(
           "Error using @google/generative-ai client methods:",
           err?.message || err
@@ -61,11 +63,10 @@ async function generateContent(prompt) {
   for (const attempt of restAttempts) {
     try {
       triedEndpoints.push(attempt.url);
-      const res = await fetch(attempt.url, {
+      const res = await fetch(`${attempt.url}?key=${API_KEY}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${API_KEY}`,
         },
         body: JSON.stringify(attempt.body),
       });
@@ -234,4 +235,131 @@ Requirements:
 Return as a single paragraph without extra text.
 `;
   return await generateContent(prompt);
+}
+
+export async function calculateATSScoreAI(resumeData, jobDescription) {
+  // Build resume text from structured data
+  const resumeText = buildResumeText(resumeData);
+  
+  const prompt = `
+You are an expert ATS (Applicant Tracking System) analyzer. Analyze the following resume against the job description and provide a detailed compatibility assessment.
+
+RESUME:
+${resumeText}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+Analyze the resume and return ONLY a JSON response in this exact format:
+{
+  "score": <number 0-100>,
+  "keywordMatches": ["keyword1", "keyword2", ...],
+  "missingKeywords": ["keyword1", "keyword2", ...],
+  "suggestions": [
+    "Specific suggestion 1",
+    "Specific suggestion 2",
+    ...
+  ],
+  "sectionScores": {
+    "skills": <number 0-100>,
+    "experience": <number 0-100>,
+    "education": <number 0-100>,
+    "overall": <number 0-100>
+  },
+  "summary": "Brief 2-3 sentence summary of the resume's ATS compatibility"
+}
+
+Scoring guidelines:
+- 90-100: Excellent match, resume is highly optimized for this job
+- 70-89: Good match, minor improvements needed
+- 50-69: Moderate match, several important keywords missing
+- 30-49: Weak match, significant gaps in qualifications
+- 0-29: Poor match, resume needs major revision for this role
+
+IMPORTANT: Return ONLY valid JSON. No markdown, no explanations outside JSON.
+`;
+
+  const text = await generateContent(prompt);
+  
+  try {
+    const cleaned = String(text)
+      .replace(/```(?:json)?\\n?/g, "")
+      .replace(/```/g, "")
+      .trim();
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error("❌ [AI Service] Failed to parse ATS score JSON:", err);
+    console.error("❌ [AI Service] Raw text received:", text);
+    debug("Failed to parse ATS score JSON:", err?.message || err, "raw:", text);
+    // Return fallback structure
+    return {
+      score: 0,
+      keywordMatches: [],
+      missingKeywords: [],
+      suggestions: ["Unable to analyze resume. Please try again."],
+      sectionScores: {
+        skills: 0,
+        experience: 0,
+        education: 0,
+        overall: 0,
+      },
+      summary: "Analysis failed. Please ensure your resume data is complete and try again.",
+    };
+  }
+}
+
+// Helper function to build readable text from structured resume data
+function buildResumeText(resumeData) {
+  const parts = [];
+  
+  // Personal Info
+  if (resumeData.personalInfo) {
+    const pi = resumeData.personalInfo;
+    parts.push(`NAME: ${pi.name || "N/A"}`);
+    if (pi.email) parts.push(`EMAIL: ${pi.email}`);
+    if (pi.phone) parts.push(`PHONE: ${pi.phone}`);
+    if (pi.location) parts.push(`LOCATION: ${pi.location}`);
+  }
+  
+  // Summary
+  if (resumeData.summary) {
+    parts.push(`\nPROFESSIONAL SUMMARY:\n${resumeData.summary}`);
+  }
+  
+  // Skills
+  if (resumeData.skills?.length) {
+    parts.push(`\nSKILLS:\n${resumeData.skills.join(", ")}`);
+  }
+  
+  // Experience
+  if (resumeData.experience?.length) {
+    parts.push("\nWORK EXPERIENCE:");
+    resumeData.experience.forEach((exp, i) => {
+      parts.push(`${i + 1}. ${exp.position || exp.title || "Position"} at ${exp.company || exp.organization || "Company"}`);
+      if (exp.startDate) parts.push(`   Duration: ${exp.startDate} - ${exp.endDate || (exp.current ? "Present" : "N/A")}`);
+      if (exp.description) parts.push(`   ${exp.description}`);
+    });
+  }
+  
+  // Education
+  if (resumeData.education?.length) {
+    parts.push("\nEDUCATION:");
+    resumeData.education.forEach((edu, i) => {
+      parts.push(`${i + 1}. ${edu.degree || "Degree"} in ${edu.field || "Field"} from ${edu.institution || "Institution"}`);
+      if (edu.startDate) parts.push(`   Duration: ${edu.startDate} - ${edu.endDate || "N/A"}`);
+      if (edu.gpa) parts.push(`   GPA: ${edu.gpa}`);
+    });
+  }
+  
+  // Certifications
+  if (resumeData.certifications?.length) {
+    parts.push(`\nCERTIFICATIONS:\n${resumeData.certifications.join(", ")}`);
+  }
+  
+  // Languages
+  if (resumeData.languages?.length) {
+    parts.push(`\nLANGUAGES:\n${resumeData.languages.join(", ")}`);
+  }
+  
+  return parts.join("\n");
 }

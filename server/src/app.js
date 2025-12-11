@@ -13,6 +13,12 @@ app.use(cors());
 app.use("/api/inngest", inngestHandler);
 
 app.use(express.json());
+
+// Health check endpoint (before authentication middleware)
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // Apply Clerk middleware globally
 app.use(
   clerkMiddleware({

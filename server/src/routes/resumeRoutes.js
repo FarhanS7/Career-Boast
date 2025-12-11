@@ -1,5 +1,6 @@
 import express from "express";
 import {
+    checkATSScore,
     deleteResume,
     getResume,
     getResumeById,
@@ -8,7 +9,7 @@ import {
     shareResume,
     updateResume,
 } from "../controllers/resumeController.js";
-import { improveResumeSchema, resumeSchema } from "../lib/schema.js";
+import { atsScoreSchema, improveResumeSchema, resumeSchema } from "../lib/schema.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 import { validateSchema } from "../middlewares/validate.middleware.js";
 
@@ -34,5 +35,8 @@ router.post("/:id/share", requireAuth, shareResume);
 
 // AI improvement for resume
 router.post("/:id/improve", requireAuth, validateSchema(improveResumeSchema), improveResume);
+
+// Check ATS score for resume
+router.post("/ats-score", requireAuth, validateSchema(atsScoreSchema), checkATSScore);
 
 export default router;

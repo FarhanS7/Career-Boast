@@ -200,3 +200,52 @@ export async function shareResume(req, res, next) {
     next(err);
   }
 }
+
+export async function checkATSScore(req, res, next) {
+  try {
+    const user = await db.user.findUnique({
+      where: { clerkUserId: req.userId },
+    });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const resume = await db.resume.findUnique({ where: { userId: user.id } });
+    if (!resume) {
+      return res.status(404).json({ 
+        error: "Resume not found",
+        message: "Please create a resume first before checking ATS score" 
+      });
+    }
+
+    const { jobDescription } = req.body;
+
+    // Prepare resume data for ATS analysis
+    const resumeData = {
+      personalInfo: resume.personalInfo,
+      summary: resume.summary,
+      skills: resume.skills,
+      experience: resume.experience,
+      education: resume.education,
+      certifications: resume.certifications,
+      languages: resume.languages,
+    };
+
+    // Get ATS score from AI
+    const atsResult = await calculateATSScoreAI(resumeData, jobDescription);
+
+    // Optionally update the resume's atsScore field
+    if (atsResult.score && typeof atsResult.score === 'number') {
+      await db.resume.update({
+        where: { id: resume.id },
+        data: { atsScore: atsResult.score },
+      });
+    }
+
+    res.json({
+      success: true,
+      ...atsResult,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+

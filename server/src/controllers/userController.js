@@ -38,19 +38,27 @@ export async function updateUser(req, res, next) {
 
     const data = req.body;
 
-    const result = await db.$transaction(async (tx) => {
-      let industryInsight = await tx.industryInsight.findUnique({
-        where: {
-          industry_subIndustry: {
-            industry: data.industry,
-            subIndustry: data.subIndustry
-          }
+    // Check if industry insight exists BEFORE the transaction
+    let existingInsight = await db.industryInsight.findUnique({
+      where: {
+        industry_subIndustry: {
+          industry: data.industry,
+          subIndustry: data.subIndustry
         }
-      });
+      }
+    });
 
-      if (!industryInsight) {
-        const insights = await generateIndustryInsightsAI(data.industry);
+    // Generate AI insights OUTSIDE the transaction (this is slow)
+    let insights = null;
+    if (!existingInsight) {
+      insights = await generateIndustryInsightsAI(data.industry);
+    }
 
+    // Now run the fast database operations in a transaction
+    const result = await db.$transaction(async (tx) => {
+      let industryInsight = existingInsight;
+
+      if (!industryInsight && insights) {
         industryInsight = await tx.industryInsight.create({
           data: {
             industry: data.industry,
