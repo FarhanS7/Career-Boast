@@ -85,6 +85,9 @@ export const api = {
     save: (data) => apiClient.post("/resume", data),
     improve: (data) => apiClient.post("/resume/improve", data),
     checkATSScore: (jobDescription) => apiClient.post("/resume/ats-score", { jobDescription }),
+    checkATSScoreFile: (formData) => apiClient.post("/resume/ats-score/file", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   },
   
   // Cover letter endpoints

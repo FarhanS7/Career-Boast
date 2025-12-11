@@ -4,6 +4,8 @@ import { useUser } from "@/lib/hooks/use-user";
 import { cn } from "@/lib/utils";
 import { UserButton } from "@clerk/nextjs";
 import {
+    Briefcase,
+    FileSearch,
     FileText,
     GraduationCap,
     LayoutDashboard,
@@ -20,6 +22,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Resume", href: "/dashboard/resume", icon: FileText },
   { name: "ATS Checker", href: "/dashboard/ats", icon: FileSearch },
+  { name: "Job Matcher", href: "/dashboard/jobs", icon: Briefcase },
   { name: "Cover Letter", href: "/dashboard/cover-letter", icon: PenTool },
   { name: "Interview Prep", href: "/dashboard/interview", icon: GraduationCap },
 ];
