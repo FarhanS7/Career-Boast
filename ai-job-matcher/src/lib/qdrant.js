@@ -1,6 +1,6 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 
-const VECTOR_SIZE = 768; // Updated for text-embedding-004 model
+const VECTOR_SIZE = 768; 
 
 let qdrantClient = null;
 

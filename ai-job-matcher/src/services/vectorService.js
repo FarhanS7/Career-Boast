@@ -61,6 +61,24 @@ export const deleteResumeVector = async (resumeId) => {
   });
 };
 
+export const getResumeVector = async (resumeId) => {
+  const client = getQdrantClient();
+  try {
+    const results = await client.retrieve(COLLECTIONS.RESUMES, {
+      ids: [resumeId],
+      with_vector: true,
+    });
+    
+    if (results && results.length > 0) {
+      return results[0].vector;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error retrieving vector for resume ${resumeId}:`, error.message);
+    return null;
+  }
+};
+
 export const deleteJobVector = async (jobId) => {
   const client = getQdrantClient();
   

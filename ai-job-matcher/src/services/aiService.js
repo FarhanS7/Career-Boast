@@ -1,49 +1,93 @@
 import { getGenerativeModel } from "../lib/gemini.js";
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const generateWithRetry = async (model, prompt, maxRetries = 5) => {
+  let retries = 0;
+  while (retries <= maxRetries) {
+    try {
+      return await model.generateContent(prompt);
+    } catch (error) {
+      // Check for 429 or 503 (service unavailable) which are retryable
+      const isRetryable = error.message.includes("429") || 
+                          error.status === 429 || 
+                          error.message.includes("Too Many Requests") ||
+                          error.status === 503;
+      
+      if (isRetryable) {
+        retries++;
+        if (retries > maxRetries) {
+          console.error(`Failed after ${maxRetries} retries due to quota/service:`, error.message);
+          throw error;
+        }
+        
+        // Parse retryDelay from error details if available (e.g., "retryDelay": "33s")
+        let delay = 0;
+        if (error.errorDetails) {
+          const retryInfo = error.errorDetails.find(d => d.retryDelay);
+          if (retryInfo) {
+            const seconds = parseFloat(retryInfo.retryDelay.replace('s', ''));
+            if (!isNaN(seconds)) delay = (seconds + 1) * 1000; // Add 1s buffer
+          }
+        }
+        
+        // If no specific delay found, use aggressive exponential backoff: 5s, 10s, 20s, 40s, 80s
+        if (!delay) {
+            delay = 5000 * Math.pow(2, retries - 1);
+        }
+        
+        console.log(`Rate limited. Waiting ${delay/1000}s before retry ${retries}/${maxRetries}...`);
+        await sleep(delay);
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error("Failed to generate content after multiple retries.");
+};
+
 export const generateRecommendations = async (resume, matchedJobs) => {
   const model = getGenerativeModel();
   
-  const prompt = `You are an expert career advisor and job matching AI. 
+  // DRASTICALLY REDUCE CONTEXT TO FIT FREE TIER
+  // 1. Truncate resume to 2000 chars
+  // 2. Reduce similar jobs to top 5
+  // 3. Remove job description, only send title/company/tags
+  
+  const jobsToAnalyze = matchedJobs.slice(0, 5);
+  
+  const prompt = `You are an expert career advisor.
+  
+Analyze the resume and these ${jobsToAnalyze.length} job postings. 
+Identify the best matches.
 
-Analyze the resume and ${matchedJobs.length} pre-matched job postings. Provide structured recommendations for the TOP 10 BEST jobs.
-
-For each recommended job, provide:
-- Match score (0-100) based on skills, experience, and fit
-- Main reason why this job is a good fit
-- Skills from resume that match the job requirements
-- Skills mentioned in job that are missing from resume
-
-Resume:
-${resume.rawText}
+Resume (excerpt):
+${resume.rawText.substring(0, 2000)}...
 
 Matched Jobs:
-${matchedJobs.map((job, idx) => `
+${jobsToAnalyze.map((job, idx) => `
 Job #${idx + 1}:
 - Title: ${job.title}
 - Company: ${job.company}
-- Location: ${job.location || "Not specified"}
-- Description: ${job.description.substring(0, 500)}...
+- Location: ${job.location || "N/A"}
 - Tags: ${job.tags?.join(", ") || "None"}
-- Similarity Score: ${(job.score * 100).toFixed(1)}%
+- Similarity: ${(job.score * 100).toFixed(1)}%
 `).join("\n")}
 
-Provide your recommendations in the following JSON format (ONLY JSON, no markdown):
+Return a JSON object with a "recommendations" array.
+For the top 3-5 suitable jobs, provide:
 {
-  "recommendations": [
-    {
-      "jobId": "string (use the job's ID)",
-      "matchScore": 85,
-      "mainReason": "Strong alignment with required Python and ML skills...",
-      "skillsMatched": ["Python", "TensorFlow", "AWS"],
-      "skillsMissing": ["Kubernetes", "Go"]
-    }
-  ]
+  "jobId": "...",
+  "matchScore": 85,
+  "mainReason": "...",
+  "skillsMatched": ["..."],
+  "skillsMissing": ["..."]
 }
 
-Return EXACTLY 10 recommendations, ordered by match score (highest first).`;
+ONLY JSON.`;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await generateWithRetry(model, prompt);
     const text = result.response.text();
     
     let jsonText = text.trim();

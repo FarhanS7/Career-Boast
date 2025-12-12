@@ -1,5 +1,21 @@
 import axios from "axios";
 
+const safeParseDate = (dateInfo) => {
+  if (!dateInfo) return null;
+  
+  try {
+    // Handle RemoteOK epoch seconds
+    if (typeof dateInfo === 'number' && dateInfo < 10000000000) {
+      return new Date(dateInfo * 1000);
+    }
+    
+    const parsed = new Date(dateInfo);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const fetchRemoteOKJobs = async () => {
   try {
     const response = await axios.get("https://remoteok.com/api", {
@@ -8,7 +24,9 @@ export const fetchRemoteOKJobs = async () => {
       },
     });
     
-    const jobs = response.data.slice(1, 51);
+    // RemoteOK returns array directly, sometimes the first item is disclaimer
+    const data = Array.isArray(response.data) ? response.data : [];
+    const jobs = data.filter(j => j.id && j.id !== 'legal').slice(0, 50);
     
     return jobs.map((job) => ({
       externalId: job.id?.toString() || job.slug,
@@ -23,7 +41,7 @@ export const fetchRemoteOKJobs = async () => {
       salary: job.salary_min && job.salary_max 
         ? `$${job.salary_min}-${job.salary_max}` 
         : null,
-      postedAt: job.date ? new Date(job.date * 1000) : null,
+      postedAt: safeParseDate(job.date),
     }));
   } catch (error) {
     console.error("Error fetching RemoteOK jobs:", error.message);
@@ -38,6 +56,10 @@ export const fetchJobicyJobs = async () => {
         count: 50,
         geo: "usa,uk,canada",
         industry: "software,tech",
+      },
+      // Jobicy sometimes blocks requests without User-Agent
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; CareerBoost/1.0)",
       },
     });
     
@@ -54,9 +76,10 @@ export const fetchJobicyJobs = async () => {
       tags: job.jobIndustry ? [job.jobIndustry] : [],
       jobType: job.jobType || "remote",
       salary: null,
-      postedAt: job.pubDate ? new Date(job.pubDate) : null,
+      postedAt: safeParseDate(job.pubDate),
     }));
   } catch (error) {
+    // Jobicy might return 403 or specific errors
     console.error("Error fetching Jobicy jobs:", error.message);
     return [];
   }
@@ -99,7 +122,7 @@ export const fetchAdzunaJobs = async () => {
       salary: job.salary_min && job.salary_max 
         ? `$${Math.round(job.salary_min)}-${Math.round(job.salary_max)}` 
         : null,
-      postedAt: job.created ? new Date(job.created) : null,
+      postedAt: safeParseDate(job.created),
     }));
   } catch (error) {
     console.error("Error fetching Adzuna jobs:", error.message);

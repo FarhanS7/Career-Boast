@@ -31,12 +31,20 @@ export const generateRecommendations = async (req, res, next) => {
     }
 
     // Generate resume embedding
-    const preparedText = prepareResumeText(resume.rawText);
-    const resumeEmbedding = await generateEmbedding(preparedText);
+    // Try to get existing vector from Qdrant first to save AI quota
+    let resumeEmbedding = await vectorService.getResumeVector(resume.id);
+    
+    if (!resumeEmbedding) {
+       const preparedText = prepareResumeText(resume.rawText);
+       resumeEmbedding = await generateEmbedding(preparedText);
+       // Optionally save it back? upsertResumeVector...
+       // For now, just use it.
+    } else {
+       // Using existing resume vector from cache
+    }
 
     // Search for similar jobs in Qdrant
-    console.log("Searching for similar jobs...");
-    const similarJobs = await vectorService.searchSimilarJobs(resumeEmbedding, 30);
+    const similarJobs = await vectorService.searchSimilarJobs(resumeEmbedding, 12);
 
     if (similarJobs.length === 0) {
       return res.json({
@@ -66,11 +74,24 @@ export const generateRecommendations = async (req, res, next) => {
     })).filter(job => job.id); // Filter out any missing jobs
 
     // Generate AI recommendations
-    console.log("Generating AI recommendations...");
-    const aiRecommendations = await aiService.generateRecommendations(
-      resume,
-      matchedJobs
-    );
+    let aiRecommendations = [];
+    try {
+      aiRecommendations = await aiService.generateRecommendations(
+        resume,
+        matchedJobs
+      );
+    } catch (error) {
+      console.warn("AI generation failed (likely quota), falling back to vector matches:", error.message);
+      // Fallback: Convert matchedJobs to recommendation format
+      // We take the top 10 from vector search
+      aiRecommendations = matchedJobs.slice(0, 10).map(job => ({
+        jobId: job.id,
+        matchScore: Math.round(job.score * 100),
+        mainReason: "Matched based on skills and experience resonance (AI insights unavailable due to high load)",
+        skillsMatched: job.tags || [],
+        skillsMissing: []
+      }));
+    }
 
     // Save recommendations to database
     const savedRecommendations = [];

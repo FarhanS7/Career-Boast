@@ -6,6 +6,11 @@ import routes from "./routes/index.js";
 
 const app = express();
 
+// Log to confirm restart and env loading
+console.log("Server restarting... Gemini Model switched to 1.5-flash");
+console.log("Gemini Key ends with:", process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.slice(-4) : "NOT SET");
+
+
 // CORS configuration
 app.use(
   cors({

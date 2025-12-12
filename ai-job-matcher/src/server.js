@@ -1,10 +1,10 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import app from "./app.js";
 import { initJobSyncCron } from "./cron/jobSyncCron.js";
 import { initializeCollections } from "./lib/qdrant.js";
 
 // Load environment variables
-dotenv.config();
+// dotenv.config();
 
 const PORT = process.env.PORT || 4001;
 

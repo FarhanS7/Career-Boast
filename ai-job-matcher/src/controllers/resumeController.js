@@ -79,7 +79,22 @@ export const uploadResume = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(error);
+    console.error("Upload error:", error);
+    try {
+      await fs.writeFile("error.log", JSON.stringify({ 
+        message: error.message, 
+        stack: error.stack,
+        data: error.data,
+        status: error.status,
+        statusText: error.statusText 
+      }, null, 2));
+    } catch (e) {
+      console.error("Failed to write error log:", e);
+    }
+    res.status(500).json({ 
+      error: "Internal Server Error", 
+      message: error.message
+    });
   }
 };
 
