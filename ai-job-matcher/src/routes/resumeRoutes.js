@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs/promises";
 import multer from "multer";
 import path from "path";
 import * as resumeController from "../controllers/resumeController.js";
@@ -8,8 +9,14 @@ const router = express.Router();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
+  destination: async (req, file, cb) => {
+    const uploadDir = "uploads/";
+    try {
+        await fs.mkdir(uploadDir, { recursive: true });
+    } catch (err) {
+        // ignore if exists
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
