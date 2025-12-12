@@ -1,6 +1,6 @@
 
 import debugFactory from "debug";
-import fetch from "node-fetch"; // ensure node-fetch is installed (npm i node-fetch@2) or use global fetch in Node 18+
+// import fetch from "node-fetch"; // Native fetch is available in Node 18+
 const debug = debugFactory("handy:ai");
 
 // Force debug output to console for now
@@ -161,8 +161,8 @@ Include at least 5 common roles, skills, and trends.
       .trim();
     return JSON.parse(cleaned);
   } catch (err) {
-    console.error("❌ [AI Service] Failed to parse industry insights JSON:", err);
-    console.error("❌ [AI Service] Raw text received:", text);
+    console.error("[AI Service] Failed to parse industry insights JSON:", err);
+    console.error("[AI Service] Raw text received:", text);
     debug(
       "Failed to parse industry insights JSON:",
       err?.message || err,
@@ -296,8 +296,8 @@ IMPORTANT: Return ONLY valid JSON. No markdown, no explanations outside JSON.
       .trim();
     return JSON.parse(cleaned);
   } catch (err) {
-    console.error("❌ [AI Service] Failed to parse ATS score JSON:", err);
-    console.error("❌ [AI Service] Raw text received:", text);
+    console.error("[AI Service] Failed to parse ATS score JSON:", err);
+    console.error("[AI Service] Raw text received:", text);
     debug("Failed to parse ATS score JSON:", err?.message || err, "raw:", text);
     // Return fallback structure
     return {

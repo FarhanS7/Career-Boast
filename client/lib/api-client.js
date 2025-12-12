@@ -114,7 +114,7 @@ export const api = {
 };
 
 // AI Job Matcher API Client (Port 4001)
-const JOB_MATCHER_API_URL = "http://localhost:4001/api";
+const JOB_MATCHER_API_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || "http://localhost:4001/api";
 
 const jobMatcherClient = axios.create({
   baseURL: JOB_MATCHER_API_URL,

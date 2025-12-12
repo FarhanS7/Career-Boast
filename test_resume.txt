@@ -1,0 +1,5 @@
+John Doe
+Software Engineer
+Experienced in Node.js, React, and Python.
+Looking for a backend developer role.
+Skills: JavaScript, TypeScript, SQL, Docker.

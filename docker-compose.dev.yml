@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: careercoach-db-dev
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+    ports:
+      - "5555:5432"
+    volumes:
+      - db-data-dev:/var/lib/postgresql/data
+    networks:
+      - careercoach-dev-network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+      target: deps  # Use deps stage for development
+    container_name: careercoach-server-dev
+    ports:
+      - "4000:4000"
+      - "9229:9229"  # Node.js debugging port
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/mydb
+      - PORT=4000
+      - NODE_ENV=development
+    env_file:
+      - ./server/.env
+    volumes:
+      # Mount source code for hot reload
+      - ./server:/app
+      - /app/node_modules
+      - /app/node_modules/.prisma
+    command: npm run dev
+    depends_on:
+      - db
+    networks:
+      - careercoach-dev-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: deps  # Use deps stage for development
+    container_name: careercoach-client-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - ./client/.env.local
+    volumes:
+      # Mount source code for hot reload
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
+    command: npm run dev
+    depends_on:
+      - server
+    networks:
+      - careercoach-dev-network
+
+networks:
+  careercoach-dev-network:
+    driver: bridge
+
+volumes:
+  db-data-dev:
+    driver: local

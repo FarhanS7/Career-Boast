@@ -111,7 +111,7 @@ model IndustryInsight {
 
 // Resume profiles for job matching (separate from main Resume model)
 model ResumeProfile {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   userId    String? // Optional: can link to User model
   title     String // e.g., "Senior Backend Developer Resume"
   rawText   String   @db.Text
@@ -129,7 +129,7 @@ model ResumeProfile {
 
 // Job postings fetched from external APIs
 model JobPosting {
-  id          String    @id @default(cuid())
+  id          String    @id @default(uuid())
   externalId  String // Job ID from the source API
   source      String // e.g., "jobicy", "adzuna", "remoteok"
   title       String
@@ -155,7 +155,7 @@ model JobPosting {
 
 // AI-powered job recommendations with match scores
 model JobRecommendation {
-  id            String   @id @default(cuid())
+  id            String   @id @default(uuid())
   resumeId      String
   jobId         String
   matchScore    Float // 0-100 similarity score
