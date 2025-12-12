@@ -54,11 +54,16 @@ export const searchSimilarJobs = async (resumeVector, topK = 30) => {
 
 export const deleteResumeVector = async (resumeId) => {
   const client = getQdrantClient();
-  
-  await client.delete(COLLECTIONS.RESUMES, {
-    wait: true,
-    points: [resumeId],
-  });
+  try {
+    await client.delete(COLLECTIONS.RESUMES, {
+      wait: true,
+      points: [resumeId],
+    });
+  } catch (error) {
+    // If the ID is invalid (e.g. CUID vs UUID) or not found, just log and ignore
+    // so we don't block the database deletion.
+    console.warn(`Warning: Failed to delete resume vector ${resumeId} (might not exist or invalid ID): ${error.message}`);
+  }
 };
 
 export const getResumeVector = async (resumeId) => {
@@ -81,11 +86,14 @@ export const getResumeVector = async (resumeId) => {
 
 export const deleteJobVector = async (jobId) => {
   const client = getQdrantClient();
-  
-  await client.delete(COLLECTIONS.JOBS, {
-    wait: true,
-    points: [jobId],
-  });
+  try {
+    await client.delete(COLLECTIONS.JOBS, {
+      wait: true,
+      points: [jobId],
+    });
+  } catch (error) {
+    console.warn(`Warning: Failed to delete job vector ${jobId}: ${error.message}`);
+  }
 };
 
 export const batchUpsertJobVectors = async (jobs) => {
