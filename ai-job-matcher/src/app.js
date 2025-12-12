@@ -14,7 +14,19 @@ console.log("Gemini Key ends with:", process.env.GEMINI_API_KEY ? process.env.GE
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
+        .split(",")
+        .map(url => url.trim().replace(/\/$/, ""));
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
