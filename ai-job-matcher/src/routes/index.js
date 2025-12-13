@@ -43,7 +43,16 @@ router.get("/diagnose", async (req, res) => {
   // Test 1: Qdrant
   try {
     const qdrant = getQdrantClient();
-    const collections = await qdrant.getCollections();
+    let collections = await qdrant.getCollections();
+    
+    // Auto-fix: If collections are missing, try to initialize them
+    if (collections.collections.length === 0) {
+       console.log("Diagnostics: Collections missing, attempting to initialize...");
+       const { initializeCollections } = await import("../lib/qdrant.js");
+       await initializeCollections();
+       collections = await qdrant.getCollections(); // Refresh
+    }
+
     report.tests.qdrant = { status: "OK", collections: collections.collections.map(c => c.name) };
   } catch (err) {
     report.tests.qdrant = { status: "FAILED", error: err.message };
