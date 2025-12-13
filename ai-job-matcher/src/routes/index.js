@@ -44,17 +44,14 @@ router.get("/diagnose", async (req, res) => {
   try {
     const qdrant = getQdrantClient();
     
-    // Explicitly try to create the collection to test Write Permissions
+    // Explicitly run full initialization to ensure BOTH 'resumes' and 'jobs' exist
     let creationStatus = "Skipped";
     try {
-        await qdrant.createCollection("resumes", { vectors: { size: 768, distance: "Cosine" } });
-        creationStatus = "Success: Created 'resumes'";
+        const { initializeCollections } = await import("../lib/qdrant.js");
+        await initializeCollections();
+        creationStatus = "Success: Initialized all collections";
     } catch (createErr) {
-        if (createErr.message.includes("409") || createErr.message.includes("already exists")) {
-             creationStatus = "Exists (OK)";
-        } else {
-             creationStatus = `FAILED: ${createErr.message}`;
-        }
+         creationStatus = `FAILED: ${createErr.message}`;
     }
 
     const collections = await qdrant.getCollections();
