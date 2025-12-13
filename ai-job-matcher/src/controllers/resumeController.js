@@ -16,6 +16,21 @@ export const uploadResume = async (req, res, next) => {
       });
     }
 
+    // DEBUG: Check Environment Variables
+    if (!process.env.GEMINI_API_KEY) {
+        console.error("CRITICAL: GEMINI_API_KEY is missing");
+        return res.status(500).json({ error: "Configuration Error", message: "Server missing GEMINI_API_KEY" });
+    }
+    if (!process.env.QDRANT_URL) {
+        console.error("CRITICAL: QDRANT_URL is missing");
+        return res.status(500).json({ error: "Configuration Error", message: "Server missing QDRANT_URL" });
+    }
+    if (!process.env.QDRANT_API_KEY) {
+         console.warn("WARNING: QDRANT_API_KEY is missing (might be needed for cloud)");
+    }
+
+    console.log(`Processing upload: ${req.file.originalname} (${req.file.mimetype})`);
+
     const file = req.file;
     const userId = req.auth?.userId || null;
 

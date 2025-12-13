@@ -44,7 +44,17 @@ export const generateRecommendations = async (req, res, next) => {
     }
 
     // Search for similar jobs in Qdrant
-    const similarJobs = await vectorService.searchSimilarJobs(resumeEmbedding, 12);
+    let similarJobs = [];
+    try {
+      similarJobs = await vectorService.searchSimilarJobs(resumeEmbedding, 12);
+    } catch (err) {
+      console.error("Qdrant Search Failed:", err.message);
+      return res.status(503).json({
+        error: "Search Service Unavailable",
+        message: "Could not retrieve jobs from vector database. Please check Qdrant configuration.",
+        debug: err.message
+      });
+    }
 
     if (similarJobs.length === 0) {
       return res.json({
