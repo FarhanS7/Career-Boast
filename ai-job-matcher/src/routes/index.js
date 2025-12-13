@@ -49,7 +49,15 @@ router.get("/diagnose", async (req, res) => {
     try {
         const { initializeCollections } = await import("../lib/qdrant.js");
         await initializeCollections();
-        creationStatus = "Success: Initialized all collections";
+        
+        // FORCE CREATE JOBS just to be sure
+        try {
+            await qdrant.createCollection("jobs", { vectors: { size: 768, distance: "Cosine" } });
+            creationStatus = "Success: Created 'jobs' (Force)";
+        } catch (e) {
+            creationStatus = `Info: Jobs creation result: ${e.message}`;
+        }
+        
     } catch (createErr) {
          creationStatus = `FAILED: ${createErr.message}`;
     }
