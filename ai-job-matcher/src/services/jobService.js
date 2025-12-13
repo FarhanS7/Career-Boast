@@ -139,9 +139,56 @@ export const fetchAllJobs = async () => {
     fetchAdzunaJobs(),
   ]);
   
-  const allJobs = [...remoteOKJobs, ...jobicyJobs, ...adzunaJobs];
+  let allJobs = [...remoteOKJobs, ...jobicyJobs, ...adzunaJobs];
+
+  // Fallback: If no jobs were fetched (likely API blocking), use seed data
+  if (allJobs.length === 0) {
+      console.log("Warning: APIs returned 0 jobs. Using fallback seed data.");
+      const seedJobs = [
+          {
+              externalId: "mock-1",
+              source: "seed",
+              title: "Senior Frontend Engineer (React)",
+              company: "TechCorp Inc.",
+              location: "Remote",
+              url: "https://example.com/job1",
+              description: "We are looking for an experienced React developer to build modern web applications. Experience with Next.js and Tailwind CSS is required.",
+              tags: ["react", "javascript", "typescript", "frontend"],
+              jobType: "full-time",
+              salary: "$120,000-$160,000",
+              postedAt: new Date()
+          },
+          {
+              externalId: "mock-2",
+              source: "seed",
+              title: "Backend Developer (Node.js)",
+              company: "API Solutions",
+              location: "New York, NY",
+              url: "https://example.com/job2",
+              description: "Join our backend team to build scalable microservices using Node.js, Express, and PostgreSQL. Experience with Docker and AWS is a plus.",
+              tags: ["node.js", "backend", "postgresql", "aws"],
+              jobType: "full-time",
+              salary: "$130,000-$170,000",
+              postedAt: new Date()
+          },
+          {
+               externalId: "mock-3",
+               source: "seed",
+               title: "Full Stack Engineer",
+               company: "StartupXYZ",
+               location: "Remote",
+               url: "https://example.com/job3",
+               description: "Looking for a generalist who can work on both frontend (React) and backend (Python/Django).",
+               tags: ["python", "react", "fullstack", "django"],
+               jobType: "contract",
+               salary: "$60-$90/hr",
+               postedAt: new Date()
+          }
+      ];
+      allJobs = seedJobs;
+  }
   
-  console.log(`Fetched ${allJobs.length} jobs total`);
+  console.log(`Fetched ${allJobs.length} jobs total (including seeds)`);
   console.log(`  RemoteOK: ${remoteOKJobs.length}`);
   console.log(`  Jobicy: ${jobicyJobs.length}`);
   console.log(`  Adzuna: ${adzunaJobs.length}`);
