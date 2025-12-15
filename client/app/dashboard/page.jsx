@@ -20,21 +20,37 @@ export default function DashboardHome() {
   }, [loading, needsOnboarding, router]);
 
   const [insights, setInsights] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
+    let pollTimer;
+
     const fetchInsights = async () => {
       if (user?.industry && user?.subIndustry) {
         try {
           const token = await getToken();
           if (token) setAuthToken(token);
+          
           const data = await api.dashboard.getIndustryInsights();
-          setInsights(data);
+          
+          if (data.status === "generating") {
+             setIsGenerating(true);
+             // Poll again in 3 seconds
+             pollTimer = setTimeout(fetchInsights, 3000);
+          } else {
+             setInsights(data);
+             setIsGenerating(false);
+          }
         } catch (error) {
           console.error(error);
+          setIsGenerating(false);
         }
       }
     };
+
     fetchInsights();
+
+    return () => clearTimeout(pollTimer);
   }, [user, getToken]);
 
   if (loading) {
@@ -117,13 +133,26 @@ export default function DashboardHome() {
       {insights ? (
         <DashboardView insights={insights} />
       ) : (
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10">
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Industry Insights
-          </h2>
-          <p className="text-zinc-400 mb-4">
-            Loading industry insights...
-          </p>
+        <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10 flex flex-col items-center text-center">
+            {isGenerating ? (
+                <>
+                  <div className="animate-pulse mb-4 p-3 bg-blue-500/20 rounded-full">
+                     <span className="text-3xl">🧠</span>
+                  </div>
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    AI is analyzing current market trends...
+                  </h2>
+                  <p className="text-zinc-400">
+                    Gathers real-time insights for {user?.industry || "your industry"}. This takes just a moment.
+                  </p>
+                </>
+            ) : (
+                <>
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    Loading Insights...
+                  </h2>
+                </>
+            )}
         </div>
       )}
     </div>
