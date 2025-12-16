@@ -135,16 +135,125 @@ export const fetchAdzunaJobs = async () => {
   }
 };
 
+// ... existing imports ...
+
+export const fetchRemotiveJobs = async () => {
+    try {
+        const response = await axios.get("https://remotive.com/api/remote-jobs", {
+            headers: BROWSER_HEADERS,
+            params: { category: "software-dev", limit: 50 },
+            timeout: 10000
+        });
+        const jobs = response.data.jobs || [];
+        return jobs.slice(0, 50).map(job => ({
+            externalId: job.id?.toString(),
+            source: "remotive",
+            title: job.title,
+            company: job.company_name,
+            location: job.candidate_required_location || "Remote",
+            url: job.url,
+            description: job.description, // HTML content
+            tags: job.tags || [],
+            jobType: job.job_type,
+            salary: job.salary || null,
+            postedAt: safeParseDate(job.publication_date)
+        }));
+    } catch (error) {
+        console.error("Error fetching Remotive jobs:", error.message);
+        return [];
+    }
+};
+
+export const fetchReedJobs = async () => {
+    if (!process.env.REED_API_KEY) {
+        console.log("Reed API key not configured, skipping");
+        return [];
+    }
+    try {
+        const response = await axios.get("https://www.reed.co.uk/api/1.0/search", {
+            auth: { username: process.env.REED_API_KEY, password: "" },
+            params: { keywords: "developer", resultsToTake: 50 },
+            headers: BROWSER_HEADERS,
+            timeout: 10000
+        });
+        const jobs = response.data.results || [];
+        return jobs.map(job => ({
+            externalId: job.jobId?.toString(),
+            source: "reed",
+            title: job.jobTitle,
+            company: job.employerName,
+            location: job.locationName,
+            url: job.jobUrl,
+            description: job.jobDescription,
+            salary: job.minimumSalary && job.maximumSalary ? `£${job.minimumSalary}-£${job.maximumSalary}` : null,
+            jobType: "full-time", 
+            postedAt: safeParseDate(job.date),
+            tags: []
+        }));
+    } catch (error) {
+        console.error("Error fetching Reed jobs:", error.message);
+        return [];
+    }
+};
+
+export const fetchUSAJobs = async () => {
+    if (!process.env.USAJOBS_API_KEY) {
+        console.log("USAJobs API key not configured, skipping");
+        return [];
+    }
+    try {
+        const response = await axios.get("https://data.usajobs.gov/api/search", {
+            headers: {
+                "User-Agent": "career-boast-ai", 
+                "Authorization-Key": process.env.USAJOBS_API_KEY,
+                "Host": "data.usajobs.gov"
+            },
+            params: { Keyword: "software", ResultsPerPage: 50 },
+            timeout: 10000
+        });
+        const jobs = response.data.SearchResult?.SearchResultItems || [];
+        return jobs.map(item => {
+            const job = item.MatchedObjectDescriptor;
+            return {
+                externalId: job.PositionID,
+                source: "usajobs",
+                title: job.PositionTitle,
+                company: job.OrganizationName,
+                location: job.PositionLocation?.[0]?.LocationName || "USA",
+                url: job.PositionURI,
+                description: job.UserArea?.Details?.JobSummary || job.PositionTitle,
+                salary: job.PositionRemuneration?.[0]?.MinimumRange ? `$${job.PositionRemuneration[0].MinimumRange}` : null,
+                jobType: job.PositionSchedule?.[0]?.Name || "Full Time",
+                postedAt: safeParseDate(job.PublicationStartDate),
+                tags: []
+            };
+        });
+    } catch (error) {
+        console.error("Error fetching USAJobs:", error.message);
+        return [];
+    }
+};
+
 export const fetchAllJobs = async () => {
   console.log("Fetching jobs from all APIs...");
   
-  const [remoteOKJobs, jobicyJobs, adzunaJobs] = await Promise.all([
+  const [remoteOKJobs, jobicyJobs, adzunaJobs, remotiveJobs, reedJobs, usaJobs] = await Promise.all([
     fetchRemoteOKJobs(),
     fetchJobicyJobs(),
     fetchAdzunaJobs(),
+    fetchRemotiveJobs(),
+    fetchReedJobs(),
+    fetchUSAJobs()
   ]);
   
-  let allJobs = [...remoteOKJobs, ...jobicyJobs, ...adzunaJobs];
+  let allJobs = [
+      ...remoteOKJobs, 
+      ...jobicyJobs, 
+      ...adzunaJobs,
+      ...remotiveJobs,
+      ...reedJobs,
+      ...usaJobs
+  ];
 
   // Fallback: If no jobs were fetched (likely API blocking), use seed data
   if (allJobs.length === 0) {
@@ -205,5 +314,8 @@ export default {
   fetchRemoteOKJobs,
   fetchJobicyJobs,
   fetchAdzunaJobs,
+  fetchRemotiveJobs,
+  fetchReedJobs,
+  fetchUSAJobs,
   fetchAllJobs,
 };
