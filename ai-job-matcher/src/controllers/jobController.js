@@ -92,10 +92,17 @@ export const syncJobs = async (req, res, next) => {
     let created = 0;
     let updated = 0;
     const jobsToEmbed = [];
+    const sourceStats = {}; // Track stats per source
 
     // Process each job
     for (const jobData of fetchedJobs) {
       try {
+        // Track source
+        if (!sourceStats[jobData.source]) {
+          sourceStats[jobData.source] = { fetched: 0, created: 0, updated: 0, errors: 0 };
+        }
+        sourceStats[jobData.source].fetched++;
+
         const existing = await prisma.jobPosting.findUnique({
           where: {
             externalId_source: {
@@ -113,17 +120,20 @@ export const syncJobs = async (req, res, next) => {
             data: jobData,
           });
           updated++;
+          sourceStats[jobData.source].updated++;
         } else {
           // Create new job
           job = await prisma.jobPosting.create({
             data: jobData,
           });
           created++;
+          sourceStats[jobData.source].created++;
         }
 
         jobsToEmbed.push(job);
       } catch (error) {
-        console.error(`Error processing job ${jobData.externalId}:`, error.message);
+        sourceStats[jobData.source].errors++;
+        console.error(`❌ Error processing job ${jobData.externalId} from ${jobData.source}:`, error.message);
       }
     }
 
@@ -163,6 +173,7 @@ export const syncJobs = async (req, res, next) => {
         updated,
         embedded: embeddedJobs.length,
       },
+      sourceBreakdown: sourceStats, // Add detailed breakdown
     });
   } catch (error) {
     next(error);
