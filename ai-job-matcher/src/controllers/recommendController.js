@@ -43,17 +43,54 @@ export const generateRecommendations = async (req, res, next) => {
        // Using existing resume vector from cache
     }
 
-    // Search for similar jobs in Qdrant
+    // Search for similar jobs
     let similarJobs = [];
     try {
       similarJobs = await vectorService.searchSimilarJobs(resumeEmbedding, 12);
     } catch (err) {
-      console.error("Qdrant Search Failed:", err.message);
-      return res.status(503).json({
-        error: "Search Service Unavailable",
-        message: "Could not retrieve jobs from vector database. Please check Qdrant configuration.",
-        debug: err.message
-      });
+      console.error("Qdrant Search Failed, falling back to keyword search:", err.message);
+      
+      // FALLBACK: Keyword-based search using Prisma
+      // Extract keywords from skills, title, or raw text
+      let keywords = [];
+      if (resume.skills && resume.skills.length > 0) {
+        keywords = resume.skills.slice(0, 5);
+      } else {
+        // Try to extract from raw text if skills missing
+        const commonSkills = [
+          "React", "Node", "Javascript", "Python", "Java", "AWS", "Docker", "Kubernetes",
+          "Sql", "NoSql", "Mongodb", "Postgres", "Backend", "Frontend", "Fullstack",
+          "Devops", "Sales", "Marketing", "Project Manager", "Designer", "Product",
+          "Typscript", "C#", "Golang", "Rust", "Azure", "GCP", "Ruby", "PHP"
+        ];
+        
+        const extracted = commonSkills.filter(skill => 
+          new RegExp(`\\b${skill}\\b`, "i").test(resume.rawText || "")
+        );
+        
+        keywords = extracted.length > 0 ? extracted.slice(0, 5) : (resume.title || "").split(" ").filter(w => w.length > 3);
+      }
+
+      if (keywords.length > 0) {
+        console.log("Fallback search using keywords:", keywords);
+        const matchingJobs = await prisma.jobPosting.findMany({
+          where: {
+            OR: keywords.map(k => ({
+              OR: [
+                { title: { contains: k, mode: "insensitive" } },
+                { description: { contains: k, mode: "insensitive" } }
+              ]
+            }))
+          },
+          take: 12,
+          orderBy: { createdAt: "desc" }
+        });
+
+        similarJobs = matchingJobs.map(job => ({
+          jobId: job.id,
+          score: 0.5, // Default score for fallback matches
+        }));
+      }
     }
 
     if (similarJobs.length === 0) {

@@ -65,7 +65,7 @@ export const uploadResume = async (req, res, next) => {
     // Save resume to database
     const resume = await prisma.resumeProfile.create({
       data: {
-        userId,
+        userId, // userId can be null if optionalAuth didn't find one, but we'll change route to require it
         title: file.originalname,
         rawText,
         fileName: file.originalname,
@@ -73,15 +73,20 @@ export const uploadResume = async (req, res, next) => {
       },
     });
 
-    // Generate embedding
-    const preparedText = embeddingService.prepareResumeText(rawText);
-    const embedding = await embeddingService.generateEmbedding(preparedText);
+    // Generate embedding and store in Qdrant (Optional: don't fail upload if vector fails)
+    try {
+      const preparedText = embeddingService.prepareResumeText(rawText);
+      const embedding = await embeddingService.generateEmbedding(preparedText);
 
-    // Store in Qdrant
-    await vectorService.upsertResumeVector(resume.id, embedding, {
-      title: resume.title,
-      userId: resume.userId,
-    });
+      await vectorService.upsertResumeVector(resume.id, embedding, {
+        title: resume.title,
+        userId: resume.userId,
+      });
+      console.log(`Vector stored for resume: ${resume.id}`);
+    } catch (vectorError) {
+      console.error("Vector storage failed, but resume was saved to DB:", vectorError.message);
+      // We don't throw here to allow the user to see their resume even if AI features are lagging/down
+    }
 
     res.status(201).json({
       message: "Resume uploaded successfully",
@@ -120,8 +125,16 @@ export const getResumes = async (req, res, next) => {
   try {
     const userId = req.auth?.userId;
     
+    // If no userId, return empty list (don't show all!)
+    if (!userId) {
+      return res.json({
+        resumes: [],
+        total: 0,
+      });
+    }
+
     const resumes = await prisma.resumeProfile.findMany({
-      where: userId ? { userId } : {},
+      where: { userId },
       select: {
         id: true,
         title: true,
