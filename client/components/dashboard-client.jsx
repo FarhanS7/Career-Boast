@@ -1,66 +1,12 @@
 "use client";
 
-import DashboardView from "@/components/dashboard-view";
-import { api, setAuthToken } from "@/lib/api-client";
-import { useAuth } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
 
-export function DashboardClient({ initialUser, initialInsights }) {
-  const { getToken } = useAuth();
-  const [insights, setInsights] = useState(initialInsights);
-  const [isGenerating, setIsGenerating] = useState(initialInsights?.status === "generating");
-
-  useEffect(() => {
-    let pollTimer;
-    let pollInterval = 3000;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    const fetchInsights = async () => {
-      // If we already have final insights, don't poll
-      if (insights && insights.status !== "generating") return;
-
-      if (initialUser?.industry && initialUser?.subIndustry) {
-        try {
-          const token = await getToken();
-          if (token) setAuthToken(token);
-          
-          const data = await api.dashboard.getIndustryInsights();
-          
-          if (data.status === "generating") {
-             setIsGenerating(true);
-             attempts++;
-             
-             if (attempts > 5) pollInterval = 5000;
-             if (attempts < maxAttempts) {
-               pollTimer = setTimeout(fetchInsights, pollInterval);
-             } else {
-               setIsGenerating(false);
-               console.warn("Max polling attempts reached for insights");
-             }
-          } else {
-             setInsights(data);
-             setIsGenerating(false);
-          }
-        } catch (error) {
-          console.error(error);
-          setIsGenerating(false);
-        }
-      }
-    };
-
-    if (isGenerating) {
-      fetchInsights();
-    }
-
-    return () => clearTimeout(pollTimer);
-  }, [initialUser, getToken, insights, isGenerating]);
-
+export function DashboardClient({ user, stats }) {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">
-          Welcome back, {initialUser?.name?.split(" ")[0] || "there"}! 👋
+          Welcome back, {user?.name?.split(" ")[0] || "there"}! 👋
         </h1>
         <p className="text-zinc-400">
           Here's what's happening with your career journey today.
@@ -70,50 +16,71 @@ export function DashboardClient({ initialUser, initialInsights }) {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[
-          { label: "Resumes Created", value: "0", color: "blue" },
-          { label: "Cover Letters", value: "0", color: "green" },
-          { label: "Interview Preps", value: "0", color: "purple" },
-          { label: "Applications", value: "0", color: "orange" },
+          { 
+              label: "Resumes Created", 
+              value: stats?.resumes || 0, 
+              color: "blue",
+              description: "Total resumes in your profile"
+          },
+          { 
+              label: "Cover Letters", 
+              value: stats?.coverLetters || 0, 
+              color: "green",
+              description: "Custom letters generated"
+          },
+          { 
+              label: "Interview Prep", 
+              value: stats?.interviews || 0, 
+              color: "purple",
+              description: "Mock interviews completed"
+          },
+          { 
+              label: "Industry", 
+              value: user?.industry ? "Ready" : "Not Set", 
+              color: "orange",
+              description: user?.industry || "Set your industry"
+          },
         ].map((stat, i) => (
           <div
             key={i}
-            className="p-6 rounded-2xl bg-zinc-900/50 border border-white/10 hover:border-white/20 transition-colors"
+            className="p-6 rounded-2xl bg-zinc-900/50 border border-white/10 hover:border-white/20 transition-all duration-300 group"
           >
-            <p className="text-zinc-400 text-sm mb-2">{stat.label}</p>
-            <p className="text-3xl font-bold text-white">{stat.value}</p>
+            <p className="text-zinc-400 text-sm mb-2 group-hover:text-zinc-300 transition-colors">{stat.label}</p>
+            <div className="flex items-end justify-between">
+              <p className="text-4xl font-bold text-white">{stat.value}</p>
+            </div>
+            <p className="text-xs text-zinc-500 mt-2">{stat.description}</p>
           </div>
         ))}
       </div>
 
-      {/* Industry Insights */}
-      {insights && insights.status !== "generating" ? (
-        <DashboardView insights={insights} />
-      ) : (
-        <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10 flex flex-col items-center text-center">
-            {isGenerating ? (
-                <>
-                  <div className="animate-pulse mb-4 p-3 bg-blue-500/20 rounded-full">
-                     <span className="text-3xl">🧠</span>
-                  </div>
-                  <h2 className="text-xl font-semibold text-white mb-2">
-                    AI is analyzing current market trends...
-                  </h2>
-                  <p className="text-zinc-400">
-                    Gathers real-time insights for {initialUser?.industry || "your industry"}. This takes just a moment.
-                  </p>
-                </>
-            ) : (
-                <>
-                  <h2 className="text-xl font-semibold text-white mb-2">
-                    Insights unavailable
-                  </h2>
-                  <p className="text-zinc-400">
-                    We couldn't load your industry insights. Please try again later.
-                  </p>
-                </>
-            )}
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-white/10">
+          <h3 className="text-xl font-bold text-white mb-2">Track Market Trends</h3>
+          <p className="text-zinc-400 mb-6">
+            Get real-time AI insights into your industry's hiring trends, salary ranges, and required skills.
+          </p>
+          <a 
+            href="/dashboard/insights" 
+            className="inline-flex items-center px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-500 transition-colors"
+          >
+            View Insights →
+          </a>
         </div>
-      )}
+        
+        <div className="p-8 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-white/10">
+          <h3 className="text-xl font-bold text-white mb-2">Career Tools</h3>
+          <p className="text-zinc-400 mb-6">
+            Optimized tools to help you land your next role faster.
+          </p>
+          <div className="flex gap-4">
+             <a href="/dashboard/resume" className="text-sm text-purple-400 hover:text-purple-300 underline font-medium">Resume Builder</a>
+             <a href="/dashboard/ats" className="text-sm text-purple-400 hover:text-purple-300 underline font-medium">ATS Checker</a>
+             <a href="/dashboard/interview" className="text-sm text-purple-400 hover:text-purple-300 underline font-medium">Mock Interview</a>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

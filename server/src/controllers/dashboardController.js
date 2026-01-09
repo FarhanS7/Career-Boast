@@ -84,3 +84,34 @@ export async function getIndustryInsights(req, res, next) {
     next(err);
   }
 }
+
+export async function getDashboardStats(req, res, next) {
+  try {
+    const user = await db.user.findUnique({
+      where: { clerkUserId: req.userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Run all counts in parallel for performance
+    const [resumeCount, coverLetterCount, interviewCount] = await Promise.all([
+      db.resume.count({ where: { userId: user.id } }),
+      db.coverLetter.count({ where: { userId: user.id } }),
+      db.assessment.count({ where: { userId: user.id } }),
+    ]);
+
+    res.json({
+      resumes: resumeCount,
+      coverLetters: coverLetterCount,
+      interviews: interviewCount,
+      // We also include industry/subIndustry so frontend knows if onboarding is needed
+      industry: user.industry,
+      subIndustry: user.subIndustry
+    });
+  } catch (err) {
+    console.error("❌ [Dashboard Stats] Error:", err);
+    next(err);
+  }
+}

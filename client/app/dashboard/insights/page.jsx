@@ -1,9 +1,9 @@
-import { DashboardClient } from "@/components/dashboard-client";
+import { InsightsClient } from "@/components/insights-client";
 import { getServerApi } from "@/lib/api-client";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-export default async function DashboardHome() {
+export default async function InsightsPage() {
   const { userId, getToken } = await auth();
   
   if (!userId) {
@@ -14,22 +14,26 @@ export default async function DashboardHome() {
   const api = getServerApi(token);
   
   let user = null;
-  let stats = null;
+  let insights = null;
 
   try {
     const userData = await api.user.getMe();
     user = userData.user;
-    
-    // Fetch stats
-    stats = await api.dashboard.getStats();
   } catch (error) {
-    console.error("Dashboard Data Fetch Error:", error);
+    console.error("Insights Page User Fetch Error:", error);
   }
 
-  // Handle redirect OUTSIDE of try/catch
   if (user && (!user.industry || !user.subIndustry)) {
     redirect("/onboarding");
   }
 
-  return <DashboardClient user={user} stats={stats} />;
+  try {
+    if (user) {
+      insights = await api.dashboard.getIndustryInsights();
+    }
+  } catch (error) {
+    console.error("Insights Page Fetch Error:", error);
+  }
+
+  return <InsightsClient initialUser={user} initialInsights={insights} />;
 }
