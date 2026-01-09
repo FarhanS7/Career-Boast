@@ -19,7 +19,7 @@ export default function JobRecommendations({ resumeId }) {
       setLoading(true);
       setError(null);
       const response = await jobApi.recommendations.get(resumeId);
-      setRecommendations(response.data.recommendations || []);
+      setRecommendations(response.recommendations || []);
     } catch (err) {
       console.error("Error fetching recommendations:", err);
       // Don't show error if it's just 404 (no recommendations yet)
@@ -36,7 +36,7 @@ export default function JobRecommendations({ resumeId }) {
       setGenerating(true);
       setError(null);
       const response = await jobApi.recommendations.generate(resumeId);
-      setRecommendations(response.data.recommendations || []);
+      setRecommendations(response.recommendations || []);
       toast.success("New recommendations generated!");
     } catch (err) {
       console.error("Error generating recommendations:", err);

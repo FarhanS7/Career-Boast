@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { jobApi } from "@/lib/api-client";
+import { jobApi, setAuthToken } from "@/lib/api-client";
+import { useAuth } from "@clerk/nextjs";
 import { format } from "date-fns";
 import { FileText, Loader2, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -13,10 +14,14 @@ export default function ResumeList({ onSelectResume }) {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
 
+  const { getToken } = useAuth();
+
   const fetchResumes = async () => {
     try {
+      const token = await getToken();
+      if (token) setAuthToken(token);
       const response = await jobApi.resumes.list();
-      setResumes(response.data.resumes || []);
+      setResumes(response.resumes || []);
     } catch (error) {
       console.error("Error fetching resumes:", error);
       toast.error("Failed to load resumes");
@@ -35,6 +40,8 @@ export default function ResumeList({ onSelectResume }) {
 
     setDeletingId(id);
     try {
+      const token = await getToken();
+      if (token) setAuthToken(token);
       await jobApi.resumes.delete(id);
       setResumes(resumes.filter((r) => r.id !== id));
       toast.success("Resume deleted successfully");

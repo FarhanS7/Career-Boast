@@ -113,6 +113,44 @@ export const api = {
   },
 };
 
+// Server-side fetch helper for Next.js Server Components
+export const getServerApi = (token) => {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const customFetch = async (endpoint, options = {}) => {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...headers,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || error.message || "Server request failed");
+    }
+
+    return response.json();
+  };
+
+  return {
+    user: {
+      getMe: () => customFetch("/user/me"),
+      update: (data) => customFetch("/user", { method: "PUT", body: JSON.stringify(data) }),
+    },
+    dashboard: {
+      getIndustryInsights: () => customFetch("/dashboard/industry-insights"),
+    }
+  };
+};
 // AI Job Matcher API Client (Port 4001)
 const JOB_MATCHER_API_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || "http://localhost:4001/api";
 
@@ -132,6 +170,33 @@ jobMatcherClient.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response interceptor - Standardize data unwrapping
+jobMatcherClient.interceptors.response.use(
+  (response) => {
+    return response.data;
+  },
+  (error) => {
+    if (error.response) {
+      const { status, data } = error.response;
+      return Promise.reject({
+        message: data?.error || data?.message || "An error occurred",
+        status,
+        details: data?.details,
+      });
+    } else if (error.request) {
+      return Promise.reject({
+        message: "Network error. Please check your connection.",
+        status: 0,
+      });
+    } else {
+      return Promise.reject({
+        message: error.message || "An unexpected error occurred",
+        status: -1,
+      });
+    }
+  }
 );
 
 export const jobApi = {

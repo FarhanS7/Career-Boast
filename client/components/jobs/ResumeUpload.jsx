@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { jobApi } from "@/lib/api-client";
+import { jobApi, setAuthToken } from "@/lib/api-client";
+import { useAuth } from "@clerk/nextjs";
 import { FileText, Loader2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ export default function ResumeUpload({ onUploadSuccess }) {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const { getToken } = useAuth();
   const fileInputRef = useRef(null);
 
   const handleDragOver = (e) => {
@@ -66,6 +68,9 @@ export default function ResumeUpload({ onUploadSuccess }) {
     formData.append("title", file.name.replace(/\.[^/.]+$/, "")); // Use filename as default title
 
     try {
+      const token = await getToken();
+      if (token) setAuthToken(token);
+
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => {

@@ -34,6 +34,12 @@ export function UserProvider({ children }) {
     }
 
     try {
+      // Try to load from cache first for immediate UI
+      const cachedStatus = localStorage.getItem("onboarding_complete");
+      if (cachedStatus === "true") {
+        setOnboardingComplete(true);
+      }
+
       setLoading(true);
 
       // Get auth token and set it for API calls
@@ -52,18 +58,18 @@ export function UserProvider({ children }) {
       setDbUser(userData.user);
 
       // Check onboarding status based on user data
-      // User is onboarded if they have an industry set
-      setOnboardingComplete(!!userData.user?.industry);
+      const isComplete = !!userData.user?.industry;
+      setOnboardingComplete(isComplete);
+      
+      // Update cache
+      localStorage.setItem("onboarding_complete", isComplete.toString());
     } catch (error) {
       console.error("Failed to initialize user:", error);
       
-      // Don't show error toast on every reload - just log it
-      // Only show if it's not a network/auth error
       if (error.status !== 0 && error.status !== 401) {
         toast.error("Failed to load user data");
       }
       
-      // Set loading to false even on error to prevent infinite loading
       setDbUser(null);
       setOnboardingComplete(false);
     } finally {
@@ -81,7 +87,6 @@ export function UserProvider({ children }) {
   // Update user data
   const updateUser = useCallback(async (data) => {
     try {
-      // Ensure we have a fresh token
       const token = await getToken();
       if (token) {
         setAuthToken(token);
@@ -90,9 +95,9 @@ export function UserProvider({ children }) {
       const updated = await api.user.update(data);
       setDbUser(updated.user);
       
-      // If updating onboarding data, mark as complete
       if (data.industry || data.experience) {
         setOnboardingComplete(true);
+        localStorage.setItem("onboarding_complete", "true");
       }
       
       toast.success("Profile updated successfully");
@@ -106,7 +111,6 @@ export function UserProvider({ children }) {
   // Refresh user data
   const refetchUser = useCallback(async () => {
     try {
-      // Ensure we have a fresh token
       const token = await getToken();
       if (token) {
         setAuthToken(token);
@@ -114,6 +118,11 @@ export function UserProvider({ children }) {
 
       const userData = await api.user.getMe();
       setDbUser(userData.user);
+      
+      const isComplete = !!userData.user?.industry;
+      setOnboardingComplete(isComplete);
+      localStorage.setItem("onboarding_complete", isComplete.toString());
+      
       return userData.user;
     } catch (error) {
       console.error("Failed to refetch user:", error);
