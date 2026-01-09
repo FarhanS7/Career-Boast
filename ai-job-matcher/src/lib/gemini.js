@@ -22,7 +22,7 @@ export const getEmbeddingModel = () => {
 export const getGenerativeModel = () => {
   const genAI = getGeminiClient();
   return genAI.getGenerativeModel({ 
-    model: "gemini-2.5-pro",
+    model: "gemini-1.5-pro",
     generationConfig: {
       temperature: 0.7,
       topP: 0.95,

@@ -3,7 +3,7 @@ import fs from "fs/promises";
 import multer from "multer";
 import path from "path";
 import * as resumeController from "../controllers/resumeController.js";
-import { optionalAuth } from "../middlewares/auth.middleware.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -41,15 +41,15 @@ const upload = multer({
 });
 
 // Upload resume
-router.post("/upload", optionalAuth, upload.single("resume"), resumeController.uploadResume);
+router.post("/upload", requireAuth, upload.single("resume"), resumeController.uploadResume);
 
 // Get all resumes for user
-router.get("/", optionalAuth, resumeController.getResumes);
+router.get("/", requireAuth, resumeController.getResumes);
 
 // Get single resume by ID
-router.get("/:id", optionalAuth, resumeController.getResumeById);
+router.get("/:id", requireAuth, resumeController.getResumeById);
 
 // Delete resume
-router.delete("/:id", optionalAuth, resumeController.deleteResume);
+router.delete("/:id", requireAuth, resumeController.deleteResume);
 
 export default router;
