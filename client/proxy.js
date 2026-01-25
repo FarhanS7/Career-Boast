@@ -1,3 +1,4 @@
+// Triggering Vercel rebuild with proxy configuration
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isProtectedRoute = createRouteMatcher([
