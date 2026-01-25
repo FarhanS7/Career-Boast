@@ -27,6 +27,7 @@ export default function RootLayout({ children }) {
             <UserProvider>
               <Header />
               {children}
+              <SpeedInsights />
               <Toaster position="bottom-right" />
             </UserProvider>
           </ThemeProvider>
