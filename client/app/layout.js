@@ -2,6 +2,7 @@ import { Header } from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { UserProvider } from "@/lib/hooks/use-user";
 import { ClerkProvider } from "@clerk/nextjs";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
