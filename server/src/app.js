@@ -16,7 +16,18 @@ app.use(express.json());
 
 // Health check endpoint (before authentication middleware)
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  const diagnostics = {
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    env_check: {
+      has_database_url: !!process.env.DATABASE_URL,
+      has_clerk_secret: !!process.env.CLERK_SECRET_KEY,
+      has_clerk_pub: !!process.env.CLERK_PUBLISHABLE_KEY,
+      has_gemini_key: !!process.env.GEMINI_API_KEY,
+    }
+  };
+  console.log("Health Check Diagnostics:", diagnostics);
+  res.status(200).json(diagnostics);
 });
 
 // Apply Clerk middleware globally
