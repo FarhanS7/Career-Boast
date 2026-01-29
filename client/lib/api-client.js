@@ -115,20 +115,17 @@ export const api = {
 
 // Server-side fetch helper for Next.js Server Components
 export const getServerApi = (token) => {
-  const headers = {
+  const commonHeaders = {
     "Content-Type": "application/json",
+    ...(token && { Authorization: `Bearer ${token}` }),
   };
-  
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
 
   const customFetch = async (endpoint, options = {}) => {
     const url = `${API_BASE_URL}${endpoint}`;
     const response = await fetch(url, {
       ...options,
       headers: {
-        ...headers,
+        ...commonHeaders,
         ...options.headers,
       },
     });
@@ -144,11 +141,15 @@ export const getServerApi = (token) => {
   return {
     user: {
       getMe: () => customFetch("/user/me"),
-      update: (data) => customFetch("/user", { method: "PUT", body: JSON.stringify(data) }),
+      update: (data) => customFetch("/user", { 
+        method: "PUT", 
+        body: JSON.stringify(data) 
+      }),
     },
     dashboard: {
       getIndustryInsights: () => customFetch("/dashboard/industry-insights"),
-    }
+      getStats: () => customFetch("/dashboard/stats"),
+    },
   };
 };
 // AI Job Matcher API Client (Port 4001)
