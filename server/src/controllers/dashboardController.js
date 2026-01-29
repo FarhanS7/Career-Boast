@@ -63,6 +63,8 @@ export async function getIndustryInsights(req, res, next) {
     // Valid Cache Hit
     if (insight && insight.salaryRanges && insight.salaryRanges.length > 0 && req.query.refresh !== 'true') {
       console.log("✅ [Industry Insights] Cache Hit");
+      // Add cache headers for performance
+      res.set('Cache-Control', 'private, max-age=300, stale-while-revalidate=600');
       return res.json(insight);
     }
 
@@ -102,6 +104,8 @@ export async function getDashboardStats(req, res, next) {
       db.assessment.count({ where: { userId: user.id } }),
     ]);
 
+    // Add cache headers for performance (short cache since data can change)
+    res.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120');
     res.json({
       resumes: resumeCount,
       coverLetters: coverLetterCount,
