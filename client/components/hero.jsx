@@ -15,7 +15,7 @@ export function Hero() {
           <span>AI-Powered Career Growth</span>
         </div>
 
-        <h1 className="animate-fade-in-up animation-delay-200 text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50">
+        <h1 className="animate-fade-in-up text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50">
           Master Your <br />
           Career Journey
         </h1>

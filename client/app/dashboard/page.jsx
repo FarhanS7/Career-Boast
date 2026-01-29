@@ -1,15 +1,12 @@
 import { DashboardClient } from "@/components/dashboard-client";
+import { DashboardSkeleton } from "@/components/dashboard-skeleton";
 import { getServerApi } from "@/lib/api-client";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-export default async function DashboardHome() {
-  const { userId, getToken } = await auth();
-  
-  if (!userId) {
-    redirect("/sign-in");
-  }
-
+async function DashboardContent() {
+  const { getToken } = await auth();
   const token = await getToken();
   const api = getServerApi(token);
   
@@ -17,7 +14,6 @@ export default async function DashboardHome() {
   let stats = null;
 
   try {
-    // Parallelize fetches to avoid waterfall
     const [userData, statsData] = await Promise.all([
       api.user.getMe(),
       api.dashboard.getStats()
@@ -29,10 +25,23 @@ export default async function DashboardHome() {
     console.error("Dashboard Data Fetch Error:", error);
   }
 
-  // Handle redirect OUTSIDE of try/catch
   if (user && (!user.industry || !user.subIndustry)) {
     redirect("/onboarding");
   }
 
   return <DashboardClient user={user} stats={stats} />;
+}
+
+export default async function DashboardHome() {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    redirect("/sign-in");
+  }
+
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  );
 }
