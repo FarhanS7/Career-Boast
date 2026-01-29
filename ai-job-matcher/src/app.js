@@ -17,22 +17,29 @@ console.log("Gemini Key ends with:", process.env.GEMINI_API_KEY ? process.env.GE
 
 
 // CORS configuration
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://career-boast-ai.vercel.app",
+  process.env.CLIENT_URL
+].filter(Boolean).map(url => url.trim().replace(/\/$/, ""));
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
-        .split(",")
-        .map(url => url.trim().replace(/\/$/, ""));
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost")) {
+      const normalizedOrigin = origin.trim().replace(/\/$/, "");
+      if (allowedOrigins.includes(normalizedOrigin) || normalizedOrigin.includes("localhost")) {
         callback(null, true);
       } else {
+        console.warn(`CORS blocked for origin: ${origin}`);
         callback(new Error("Not allowed by CORS"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

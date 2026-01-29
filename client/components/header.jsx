@@ -21,6 +21,7 @@ export function Header() {
             {[
               { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
               { name: "Resume", href: "/dashboard/resume", icon: FileText },
+              { name: "ATS Checker", href: "/dashboard/ats", icon: PenTool },
               { name: "Cover Letter", href: "/dashboard/cover-letter", icon: PenTool },
               { name: "Interview", href: "/dashboard/interview", icon: GraduationCap },
             ].map((item) => (

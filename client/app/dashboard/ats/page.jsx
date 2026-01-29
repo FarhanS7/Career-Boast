@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function ATSPage() {
-  const { user, loading } = useUser();
+  const { isAuthenticated, loading } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !isAuthenticated) {
       router.push("/sign-in");
     }
-  }, [user, loading, router]);
+  }, [isAuthenticated, loading, router]);
 
   if (loading) {
     return (
