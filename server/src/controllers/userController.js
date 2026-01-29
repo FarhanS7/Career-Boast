@@ -5,7 +5,9 @@ import { generateIndustryInsightsAI } from "../services/ai.service.js";
 
 export const getMe = async (req, res) => {
   try {
-    const user = req.user;
+    const user = await db.user.findUnique({
+      where: { clerkUserId: req.userId },
+    });
     res.json({ user });
   } catch (error) {
     res.status(500).json({ error: "Failed to get user info" });

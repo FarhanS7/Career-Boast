@@ -4,7 +4,6 @@ import { UserProvider } from "@/lib/hooks/use-user";
 import { ClerkProvider } from "@clerk/nextjs";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter } from "next/font/google";
-import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -32,7 +31,6 @@ export default function RootLayout({ children }) {
           <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"} />
         </head>
         <body className={`${inter.className} bg-black text-white antialiased`}>
-          <NextTopLoader color="#3b82f6" showSpinner={false} height={2} />
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"

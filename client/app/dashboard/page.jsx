@@ -17,11 +17,14 @@ export default async function DashboardHome() {
   let stats = null;
 
   try {
-    const userData = await api.user.getMe();
-    user = userData.user;
+    // Parallelize fetches to avoid waterfall
+    const [userData, statsData] = await Promise.all([
+      api.user.getMe(),
+      api.dashboard.getStats()
+    ]);
     
-    // Fetch stats
-    stats = await api.dashboard.getStats();
+    user = userData.user;
+    stats = statsData;
   } catch (error) {
     console.error("Dashboard Data Fetch Error:", error);
   }

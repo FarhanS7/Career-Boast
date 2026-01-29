@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import { BrainCircuit, FileText, LineChart, MessageSquare } from "lucide-react";
 
 const features = [
@@ -38,30 +35,21 @@ export function FeaturesSection() {
   return (
     <section className="py-32 px-4 bg-black relative overflow-hidden">
       <div className="container mx-auto max-w-6xl relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-20"
-        >
+        <div className="animate-fade-in-up text-center mb-20">
           <h2 className="text-3xl md:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50">
             Powerful Features for Your Career
           </h2>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
             Everything you need to land your dream job, powered by advanced artificial intelligence.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {features.map((feature, i) => (
-            <motion.div
+            <div
               key={i}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className={`relative group p-8 rounded-3xl bg-zinc-900/50 border border-white/10 overflow-hidden hover:border-white/20 transition-colors ${feature.className}`}
+              className={`animate-fade-in-up relative group p-8 rounded-3xl bg-zinc-900/50 border border-white/10 overflow-hidden hover:border-white/20 transition-colors ${feature.className}`}
+              style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
               
@@ -74,7 +62,7 @@ export function FeaturesSection() {
                   {feature.description}
                 </p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
