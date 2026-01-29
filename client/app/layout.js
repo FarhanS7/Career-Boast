@@ -3,15 +3,20 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { UserProvider } from "@/lib/hooks/use-user";
 import { ClerkProvider } from "@clerk/nextjs";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-// Optimized font loading with display swap for better FCP
-const inter = Inter({ 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
-  preload: true,
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata = {
@@ -24,13 +29,11 @@ export default function RootLayout({ children }) {
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning className="dark">
         <head>
-          {/* Preconnect to critical third-party origins */}
-          <link rel="preconnect" href="https://clerk.shared.lcl.dev" crossOrigin="anonymous" />
-          <link rel="dns-prefetch" href="https://clerk.shared.lcl.dev" />
-          {/* Preconnect to your API server if external */}
-          <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"} />
+          {/* Preconnect to critical third-party production origins */}
+          <link rel="dns-prefetch" href="https://clerk.career-boast-ai.vercel.app" />
+          <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_API_URL || "https://career-boast-backend.onrender.com"} />
         </head>
-        <body className={`${inter.className} bg-black text-white antialiased`}>
+        <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-black text-white antialiased`}>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
