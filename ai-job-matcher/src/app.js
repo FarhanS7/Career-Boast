@@ -1,10 +1,15 @@
 import { clerkMiddleware } from "@clerk/express";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+import morgan from "morgan";
 import errorHandler from "./middlewares/error.middleware.js";
 import routes from "./routes/index.js";
 
 const app = express();
+
+app.use(helmet());
+app.use(morgan("dev"));
 
 // Log to confirm restart and env loading
 console.log("Server restarting... Gemini Model switched to 1.5-flash");
